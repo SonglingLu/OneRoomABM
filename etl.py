@@ -13,4 +13,4 @@ def get_data(input_dir, output_dir):
     if ('default.json' in data_files):
         # setup variables
 
-        intake_params = pd.read_json(input_dir + '\params.json')
+        intake_params = pd.read_json(input_dir)# + '\params.json')

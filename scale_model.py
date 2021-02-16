@@ -1,4 +1,15 @@
 ## positional code: replace w/ square/circular desks TODO
+import math
+import random
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# TODO:
+# update droplet transmission
+# update aerosol transmission
+# move relevant code to SchoolABM
+# add viz for 1-room infection
 
 def init_positions(floor_area, n_students):
     # generate size of room based on circular/square desks
@@ -22,13 +33,91 @@ def init_positions(floor_area, n_students):
     return uninf_index, inf_index, inf_array, positions
 
 
+################ TODO ###############
+
+uninf_index, inf_index, inf_array, student_pos = init_positions(900, 25)
+
+# setup variables and functions# output graphs
+# countdown until symptoms appear: probability curve
+shape, loc, scale =  (0.6432659248014824, -0.07787673726582335, 4.2489459496009125)
+x = np.linspace(0, 17, 1000)
+countdown_curve = stats.lognorm(s=shape, loc=loc, scale=scale)
+
+infected = {i: int(np.round(stats.lognorm.rvs(shape, loc, scale, size=1)[0], 0)) for i in inf_index}
+
+# bound the days for overflow errors
+for i in infected:
+    if infected[i] > 17:
+        infected[i] = 17
+    if infected[i] < -10:
+        infected[i] = -10
+# create infectiveness reference dataframe
+shape, loc, scale = (20.16693271833812, -12.132674385322815, 0.6322296057082886)
+x = np.linspace(-10, 8, 19)
+infective_df = pd.DataFrame({'x': list(x), 'gamma': list(stats.gamma.pdf(x, a=shape, loc=loc, scale=scale))})
+
+uninfected = {i: 0 for i in uninf_index}
+
+
+# Use Chu
+chu_distance_curve = 1/2.02
+
+
+# Use Chen
+
+##### TODO: Get data from default.json ############
+# setup default parameters
+
+floor_area = 900  # ft2
+mean_ceiling_height = 12  # ft
+air_exchange_rate = 3  # /hr (air changes per hour (ACH))
+
+##Assumed Parameter Identified as 0.2 for Classrooms, 1.0 for outdoors##
+primary_outdoor_air_fraction = 0.2  # 1.0 = natural ventilation
+aerosol_filtration_eff = 0  # >0.9997 HEPA, =0.2-0.9 MERVs, =0 no filter
+
+#Average daily RH for San Diego is 69%
+relative_humidity = 0.69 #nice
+physical_params = [floor_area, mean_ceiling_height, air_exchange_rate, primary_outdoor_air_fraction,
+                        aerosol_filtration_eff, relative_humidity]
+
+# Physiological Parameters
+breathing_flow_rate = 0.5  # m3/hr
+max_aerosol_radius = 2  # micrometers
+physio_params = [breathing_flow_rate, max_aerosol_radius]
+
+# Disease Parameters
+exhaled_air_inf = 30  # infection quanta/m3, changes with acitivity type.
+max_viral_deact_rate = 0.3  # /hr
+disease_params = [exhaled_air_inf, max_viral_deact_rate]
+
+# Precautionary Parameters
+mask_passage_prob = .1 # 1 = no masks, ~0.1 cloth, <0.05 N95
+risk_tolerance = 0.1  # expected transmissions per infector
+prec_params = [mask_passage_prob, risk_tolerance]
+
+
 def droplet_infect(infect_id, uninfect_id, infected):
     distance = get_distance(infect_id, uninfect_id, student_pos)
-    print(infected)
     time = infected[infect_id]
     transmission_baseline = infective_df[infective_df.x == -1 * time]['gamma']
+
+    # get distance from chu
     distance_multiplier = get_dist_multiplier(distance)
-    return transmission_baseline * distance_multiplier
+
+
+
+    # approximate student time spent breathing vs talking vs loudly talking
+    breathing_type_multiplier = np.random.choice([.1, .5, 1], p=[.2, .05, .75])
+    # whisper, loud, heavy
+
+    mask_multiplier = mask_passage_prob # equivalent to aerosol masks
+
+    # convert transmission rate / hour into transmission rate / step
+    hour_to_fivemin_step = 5/60
+    # test if necessary
+
+    return transmission_baseline * distance_multiplier * breathing_type_multiplier * mask_multiplier * hour_to_fivemin_step
 
 def return_aerosol_transmission_rate(floor_area, room_height,
                             air_exchange_rate,
@@ -52,6 +141,14 @@ def return_aerosol_transmission_rate(floor_area, room_height,
 
     return airb_trans_rate #This is mean number of transmissions per hour between pair of infected / healthy individuals
 
+# transmission_aerosol_percent(length, width, height, num_occupants, num_infectious, num_masks, \
+# airchanges = 3, filters = 0, UV = 0, event_duration = 5, background_CO2=415), \
+# temperature=30, humidity=65, pressure=0.95)
+
+# def transmissio
+
+
+
 def get_distance(infect_id, uninfect_id, student_pos):
     x1y1 = student_pos[infect_id]
     x2y2 = student_pos[uninfect_id]
@@ -66,45 +163,6 @@ def get_dist_multiplier(distance):
 def one_room(input_dir, output_dir):
     num_out_test = 0
 
-    ################ TODO ###############
-
-    uninf_index, inf_index, inf_array, student_pos = init_positions(900, 25)
-
-    # setup variables and functions# output graphs
-    # countdown until symptoms appear: probability curve
-    shape, loc, scale =  (0.6432659248014824, -0.07787673726582335, 4.2489459496009125)
-    x = np.linspace(0, 17, 1000)
-    countdown_curve = stats.lognorm(s=shape, loc=loc, scale=scale)
-
-    infected = {i: int(np.round(stats.lognorm.rvs(shape, loc, scale, size=1)[0], 0)) for i in inf_index}
-
-    # bound the days for overflow errors
-    for i in infected:
-        if infected[i] > 18:
-            infected[i] = 18
-        if infected[i] < -10:
-            infected[i] = -10
-    print(infected)
-    # create infectiveness reference dataframe
-    shape, loc, scale = (20.16693271833812, -12.132674385322815, 0.6322296057082886)
-    x = np.linspace(-10, 8, 19)
-    infective_df = pd.DataFrame({'x': list(x), 'gamma': list(stats.gamma.pdf(x, a=shape, loc=loc, scale=scale))})
-
-    uninfected = {i: 0 for i in uninf_index}
-    chu_distance_curve = 1/2.02
-
-    default_params = {floor_area: 900,
-     mean_ceiling_height: 12,
-     air_exchange_rate: 3,
-     primary_outdoor_air_fraction: 0.2,
-     aerosol_filtration_eff: 0,
-     relative_humidity: 0.69,
-     breathing_flow_rate: 0.5,
-     max_aerosol_radius: 2,
-     exhaled_air_inf: 30,
-     max_viral_deact_rate: 0.3,
-     mask_passage_prob: 0.1,
-    risk_tolerance: 0.1}
 
 
     ######### TODO ###################
@@ -112,8 +170,20 @@ def one_room(input_dir, output_dir):
     # loop through day
     days = 1
     classes = 3
-    steps = 1 # TODO: replace this with breathing changes for different periods of time?
+    steps = 12 # TODO: 5 mins / step = 1 hour / class
+
+    # use these to generate plot of num_infected by step count, assuming all else equal
     step_count = 0
+    infect_plot_dict = {}
+
+
+    # temp
+    min = 1
+    max = 0
+
+    # generate plotline of num_infected using minimum default input: no masks, bad airflow, etc
+
+    # generate plotline of num_infected using maximum default input: n-95 masks, barriers, vents, etc
 
     num_infected = 2
 
@@ -139,7 +209,22 @@ def one_room(input_dir, output_dir):
                 for i_student in inf_index:
                     # Loop through uninfected and calculate likelihood of infection
                     for u_student in uninf_index:
-                        transmission = droplet_infect(i_student, u_student, infected).iloc[0]
+                        try:
+                            transmission = droplet_infect(i_student, u_student, infected).iloc[0]
+                            if transmission < min:
+                                min = transmission
+                            if transmission > max:
+                                max = transmission
+                        except:
+                            transmission = 0
+                            # print(transmission, 't')
+                            # print(u_student, i_student)
+                            # print(inf_index)
+                            # print(uninf_index)
+
+                        # store transmission for distribution: plot at end
+
+
                         if np.random.choice([True, False], p=[transmission, 1-transmission]):
 
 
@@ -154,14 +239,26 @@ def one_room(input_dir, output_dir):
         ## Aerosol Infection
         # Loop through infected and uninfected for pairwise calculations
 
-        #### TODO 2/8 ####################
-        for i in inf_index:
-
-            for u in uninf_index:
-#                 return_aerosol_transmission_rate()
-                pass
+        #### TODO 2/14 #################### Use updated Kaushik Code
+#         for i in inf_index:
+#
+#             for u in uninf_index:
+# #                 return_aerosol_transmission_rate()
+#                 a_transmit = .5
+#                 if np.random.choice([True, False], p=[a_transmit, 1-a_transmit])
+#                 pass
 
     out = 2 # count number students in inf_index
-    print('this is the number of infected students')
+    print('this is the number of infected students: ' + str(len(inf_array)))
     print(inf_array)
+    print(min, max, 'min, max')
+
+    # Viz Output: TODO 2/14
+    # create viz of students @ each step:
+    # change color when infected
+
+    # Create viz for spread of aerosol to different parts of the room?
+    # Look into particle spread
+
+
     return len(inf_array)

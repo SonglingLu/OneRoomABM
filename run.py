@@ -14,7 +14,7 @@ from etl import get_data
 from scale_model import init_positions, droplet_infect, return_aerosol_transmission_rate, get_distance, get_dist_multiplier, one_room
 
 # Targets:
-DATA_PARAMS = 'config/default.json'
+DATA_PARAMS = 'config/default_config.json'
 SCALE_MODEL_PARAMS = 'config/scale_room.json'
 
 def load_parameters(filepath):
@@ -33,11 +33,11 @@ def main(targets):
     '''
 
     if 'test' in targets: # Visualize the time until infectiveness of a newly infected individual
-        temp = load_parameters(DATA_PARAMS)
-        data = get_data(temp['input_dir'], temp['output_dir'])
+        # temp = load_parameters(DATA_PARAMS)
+        # data = get_data(temp['input_dir'], temp['output_dir'])
 
         temp = load_parameters(SCALE_MODEL_PARAMS)
-        viz_when_infective(temp['input_dir'], temp['output_dir'], data)
+        one_room(temp['input_dir'], temp['output_dir'])
 
     return
 
