@@ -4,12 +4,11 @@ import random
 import numpy as np
 import pandas as pd
 from scipy import stats
+import matplotlib.pyplot as plt
 
 # TODO:
-# update droplet transmission
-# update aerosol transmission
-# move relevant code to SchoolABM
 # add viz for 1-room infection
+# plot infections / time
 
 def init_positions(floor_area, n_students):
     # generate size of room based on circular/square desks
@@ -32,8 +31,10 @@ def init_positions(floor_area, n_students):
         inf_array.append(i)
     return uninf_index, inf_index, inf_array, positions
 
+# print('pos', positions)
+## TODO: replace messy code below with parameter input from Airavata
 
-################ TODO ###############
+# This section is dealt with in SchoolABM using parameter input files
 
 uninf_index, inf_index, inf_array, student_pos = init_positions(900, 25)
 
@@ -62,11 +63,11 @@ uninfected = {i: 0 for i in uninf_index}
 # Use Chu
 chu_distance_curve = 1/2.02
 
-
-# Use Chen
-
 ##### TODO: Get data from default.json ############
 # setup default parameters
+
+
+##### TODO: Add the following to user variables: # people in room, # days, # classes / day, recess (t/f), etc ####
 
 floor_area = 900  # ft2
 mean_ceiling_height = 12  # ft
@@ -98,15 +99,15 @@ prec_params = [mask_passage_prob, risk_tolerance]
 
 
 def droplet_infect(infect_id, uninfect_id, infected):
+    # Function to return transmission % from larger droplets
+    # TODO: update breathing rate calculation w/ SchoolABM version
+
     distance = get_distance(infect_id, uninfect_id, student_pos)
     time = infected[infect_id]
     transmission_baseline = infective_df[infective_df.x == -1 * time]['gamma']
 
     # get distance from chu
     distance_multiplier = get_dist_multiplier(distance)
-
-
-
     # approximate student time spent breathing vs talking vs loudly talking
     breathing_type_multiplier = np.random.choice([.1, .5, 1], p=[.2, .05, .75])
     # whisper, loud, heavy
@@ -124,6 +125,7 @@ def return_aerosol_transmission_rate(floor_area, room_height,
                             aerosol_filtration_eff, relative_humidity, breathing_flow_rate,
                             exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
                             max_aerosol_radius=2, primary_outdoor_air_fraction=0.2):
+    # Function to return transmission % from smaller droplets dispersing around the room
 
     mean_ceiling_height_m = mean_ceiling_height * 0.3048 #m3
     room_vol = floor_area * mean_ceiling_height  # ft3
@@ -141,13 +143,6 @@ def return_aerosol_transmission_rate(floor_area, room_height,
 
     return airb_trans_rate #This is mean number of transmissions per hour between pair of infected / healthy individuals
 
-# transmission_aerosol_percent(length, width, height, num_occupants, num_infectious, num_masks, \
-# airchanges = 3, filters = 0, UV = 0, event_duration = 5, background_CO2=415), \
-# temperature=30, humidity=65, pressure=0.95)
-
-# def transmissio
-
-
 
 def get_distance(infect_id, uninfect_id, student_pos):
     x1y1 = student_pos[infect_id]
@@ -155,20 +150,68 @@ def get_distance(infect_id, uninfect_id, student_pos):
     return math.sqrt(((x2y2[0]-x1y1[0])**2) + ((x2y2[1] - x1y1[1])**2))
 
 def get_dist_multiplier(distance):
+    # TODO: update this function with correct Chu Calculation from SchoolABM
     return distance * chu_distance_curve
 
+def create_color_viz(infect_times, num_students = 25):
+    # plot students in a grid / in seating chart - Talk to Johnny abt full model
+
+    # initialize positions of students
+    positions = {}
+    x_arr = []
+    y_arr = []
+    rows = int(math.sqrt(num_students))
+    count = 0
+    for i in range(rows):
+        for j in range(rows):
+            positions[count] = [i, j]
+            x_arr.append(i)
+            y_arr.append(j)
+            count += 1
+
+    inf_x_arr = []
+    inf_y_arr = []
+    for inf in infect_times.keys():
+        print(positions[inf])
+        inf_x_arr.append(positions[inf][0])
+        inf_y_arr.append(positions[inf][1])
+
+        # color dot red
+
+    # plot uninfected in blue
+    plt.scatter(x_arr, y_arr, color='blue')
+    # plot infected in red
+    # only output last frame for now:
+    plt.scatter(inf_x_arr, inf_y_arr, color='red')
+    plt.show()
+
+    # TODO: loop through timesteps and/or skip to next timestep and replot
+    # i.e. step 0: 2 infected, step 27: 3 infected, etc etc
+
+    return
+
+def create_plot_viz(infect_times, infect_distrib):
+    # convert infection timestamps to step function plot
+    times = infect_times.values()
+    #
+    # print('times', times)
+    step_x_array = times
+    step_y_array = [i for i in range(len(times))]
+    plt.step(step_x_array, step_y_array) # label timestep above each infection
+    plt.show()
+
+    # plot distribution of infection rate over course of model run
+    plt.hist(infect_distrib, bins=50)
+    plt.gca().set(title='Transmission likelihood distribution')
+    plt.show()
+
+    return
 
 
-
-def one_room(input_dir, output_dir):
-    num_out_test = 0
-
-
-
-    ######### TODO ###################
+def one_room(input_dir, output_dir, viz_checkd):
 
     # loop through day
-    days = 1
+    days = 5
     classes = 3
     steps = 12 # TODO: 5 mins / step = 1 hour / class
 
@@ -176,10 +219,14 @@ def one_room(input_dir, output_dir):
     step_count = 0
     infect_plot_dict = {}
 
-
     # temp
     min = 1
     max = 0
+    trans_array = []
+    infection_timesteps = {}
+    for i in inf_index:
+        infection_timesteps[i] = 0
+    # print(infection_timesteps)
 
     # generate plotline of num_infected using minimum default input: no masks, bad airflow, etc
 
@@ -193,14 +240,15 @@ def one_room(input_dir, output_dir):
                             aerosol_filtration_eff, relative_humidity, breathing_flow_rate,
                             exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
                             max_aerosol_radius=2, primary_outdoor_air_fraction=0.2)
+    # print('air', air_transmission)
 
-
+    # Loop through days in a week (5 days)
     for i in range(days):
 
         # Loop through classes in each day (3 classes)
         for c in range(classes):
 
-            # Loop through 5 minute steps in each class
+            # Loop through 5 minute steps in each class (total of 12 steps / class)
             for s in range(steps):
                 step_count += 1
 
@@ -211,54 +259,52 @@ def one_room(input_dir, output_dir):
                     for u_student in uninf_index:
                         try:
                             transmission = droplet_infect(i_student, u_student, infected).iloc[0]
-                            if transmission < min:
-                                min = transmission
-                            if transmission > max:
-                                max = transmission
+                            trans_array.append(transmission)
                         except:
-                            transmission = 0
-                            # print(transmission, 't')
-                            # print(u_student, i_student)
-                            # print(inf_index)
-                            # print(uninf_index)
+                            transmission = 0 # bug catcher
 
-                        # store transmission for distribution: plot at end
-
-
+                        # print(transmission)
                         if np.random.choice([True, False], p=[transmission, 1-transmission]):
 
 
                             # add u to infected
-                            num_out_test += 1
                             inf_array.append(u_student)
-                            # also calculate time until symptoms for u_studnet
+
+                            infection_timesteps[u_student] = step_count
+                            # also calculate time until symptoms for u_student
 
                             uninf_index.remove(u_student)
 
 
-        ## Aerosol Infection
-        # Loop through infected and uninfected for pairwise calculations
+            # Aerosol Infection
+            #Loop through infected and uninfected for pairwise calculations
 
-        #### TODO 2/14 #################### Use updated Kaushik Code
-#         for i in inf_index:
-#
-#             for u in uninf_index:
-# #                 return_aerosol_transmission_rate()
-#                 a_transmit = .5
-#                 if np.random.choice([True, False], p=[a_transmit, 1-a_transmit])
-#                 pass
+            # this is calculated after every class (hourly transmission rate in that space)
+            for i in inf_index:
+
+                for u in uninf_index:
+                    a_transmit = air_transmission
+                    if np.random.choice([True, False], p=[a_transmit, 1-a_transmit]):
+                        # add u to infected
+                        inf_array.append(u)
+                        # also calculate time until symptoms for u_student
+
+                        uninf_index.remove(u)
+                    pass
 
     out = 2 # count number students in inf_index
     print('this is the number of infected students: ' + str(len(inf_array)))
-    print(inf_array)
-    print(min, max, 'min, max')
+    print('these are the infected student IDs: ' + str(inf_array))
+    print('this is when they were infected: ' + str(infection_timesteps))
+    # print(np.min(trans_array), np.max(trans_array), 'min, max')
+    # print(np.mean(trans_array), 'mean')
 
-    # Viz Output: TODO 2/14
-    # create viz of students @ each step:
-    # change color when infected
+    # '''
+    if viz_checkd:
 
-    # Create viz for spread of aerosol to different parts of the room?
-    # Look into particle spread
+        create_color_viz(infection_timesteps, 25)
 
+        create_plot_viz(infection_timesteps, trans_array)
+    # '''
 
     return len(inf_array)
