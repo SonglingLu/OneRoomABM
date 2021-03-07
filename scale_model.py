@@ -1,10 +1,20 @@
-## positional code: replace w/ square/circular desks TODO
+## TODO
+# Make this file just functions
+# make plots better:
+# run 10k make raster is in 'air_flow'
+#     This saves the grid overlay to a file
+# ventilation calculation is in 'vent_setup'
+#     This plots a line between the edges of the vent and the edges of the windows: directionally influences aerosol
+# Implement masks as a function of this ventilation / time: i.e. reduced airflow
+
+
 import math
 import random
 import numpy as np
 import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
+import json
 
 # TODO:
 # add viz for 1-room infection
@@ -30,11 +40,6 @@ def init_positions(floor_area, n_students):
         uninf_index.remove(i)
         inf_array.append(i)
     return uninf_index, inf_index, inf_array, positions
-
-# print('pos', positions)
-## TODO: replace messy code below with parameter input from Airavata
-
-# This section is dealt with in SchoolABM using parameter input files
 
 uninf_index, inf_index, inf_array, student_pos = init_positions(900, 25)
 
@@ -63,38 +68,39 @@ uninfected = {i: 0 for i in uninf_index}
 # Use Chu
 chu_distance_curve = 1/2.02
 
-##### TODO: Get data from default.json ############
-# setup default parameters
-
-
-##### TODO: Add the following to user variables: # people in room, # days, # classes / day, recess (t/f), etc ####
-
-floor_area = 900  # ft2
-mean_ceiling_height = 12  # ft
-air_exchange_rate = 3  # /hr (air changes per hour (ACH))
+##### TODO: Get these inputs from default only if not available in user input
+deff = open('src/data/default.json',)
+floor_plan = json.load(deff)
+for i in floor_plan:
+    print(i)
+    print('fp')
+deff.close()
+floor_area = floor_plan[0]  # ft2
+mean_ceiling_height = floor_plan[1]  # ft
+air_exchange_rate = floor_plan[2]  # /hr (air changes per hour (ACH))
 
 ##Assumed Parameter Identified as 0.2 for Classrooms, 1.0 for outdoors##
-primary_outdoor_air_fraction = 0.2  # 1.0 = natural ventilation
-aerosol_filtration_eff = 0  # >0.9997 HEPA, =0.2-0.9 MERVs, =0 no filter
+primary_outdoor_air_fraction = floor_plan[3]  # 1.0 = natural ventilation
+aerosol_filtration_eff = floor_plan[4]  # >0.9997 HEPA, =0.2-0.9 MERVs, =0 no filter
 
 #Average daily RH for San Diego is 69%
-relative_humidity = 0.69 #nice
+relative_humidity = floor_plan[5] # nice
 physical_params = [floor_area, mean_ceiling_height, air_exchange_rate, primary_outdoor_air_fraction,
                         aerosol_filtration_eff, relative_humidity]
 
 # Physiological Parameters
-breathing_flow_rate = 0.5  # m3/hr
-max_aerosol_radius = 2  # micrometers
+breathing_flow_rate = floor_plan[6]  # m3/hr
+max_aerosol_radius = floor_plan[7]  # micrometers
 physio_params = [breathing_flow_rate, max_aerosol_radius]
 
 # Disease Parameters
-exhaled_air_inf = 30  # infection quanta/m3, changes with acitivity type.
-max_viral_deact_rate = 0.3  # /hr
+exhaled_air_inf = floor_plan[8]  # infection quanta/m3, changes with acitivity type.
+max_viral_deact_rate = floor_plan[9]  # /hr
 disease_params = [exhaled_air_inf, max_viral_deact_rate]
 
 # Precautionary Parameters
-mask_passage_prob = .1 # 1 = no masks, ~0.1 cloth, <0.05 N95
-risk_tolerance = 0.1  # expected transmissions per infector
+mask_passage_prob = floor_plan[10] # 1 = no masks, ~0.1 cloth, <0.05 N95
+risk_tolerance = floor_plan[11]  # expected transmissions per infector
 prec_params = [mask_passage_prob, risk_tolerance]
 
 
@@ -109,7 +115,7 @@ def droplet_infect(infect_id, uninfect_id, infected):
     # get distance from chu
     distance_multiplier = get_dist_multiplier(distance)
     # approximate student time spent breathing vs talking vs loudly talking
-    breathing_type_multiplier = np.random.choice([.1, .5, 1], p=[.2, .05, .75])
+    breathing_type_multiplier = np.random.choice([.1, .5, 1], p=[.2, .05, .75])#############################
     # whisper, loud, heavy
 
     mask_multiplier = mask_passage_prob # equivalent to aerosol masks
@@ -126,6 +132,7 @@ def return_aerosol_transmission_rate(floor_area, room_height,
                             exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
                             max_aerosol_radius=2, primary_outdoor_air_fraction=0.2):
     # Function to return transmission % from smaller droplets dispersing around the room
+    # Same as SchoolABM
 
     mean_ceiling_height_m = mean_ceiling_height * 0.3048 #m3
     room_vol = floor_area * mean_ceiling_height  # ft3
@@ -152,6 +159,109 @@ def get_distance(infect_id, uninfect_id, student_pos):
 def get_dist_multiplier(distance):
     # TODO: update this function with correct Chu Calculation from SchoolABM
     return distance * chu_distance_curve
+
+def directional_air(matrix, direction='back', row, col): # back of the bus = down
+    # is 1 good for ACH? use as proxy for now
+    # proxy for now is 1 for both aerosol emission and air flow (on bus)
+    # TODO: classroom
+    # TODO: this can probably be EASILY optimized numerically
+    # ETA: 3/14
+
+    # 2 steps:
+    # 1. make +/- matrix:
+    # 2. loop through and combine original and +/-
+    plus_coords = [][]
+    minus_coords = [][]
+
+    # fix this function now
+
+    if direction == 'back':
+        matrix[row][col] - 1
+        matrix[row-1][col] + 1
+        return matrix
+
+    if direction == 'forward':
+        #
+        matrix[row][col] - 1
+        matrix[row+1][col] + 1
+        return matrix
+
+    if direction == 'left':
+        #
+        matrix[row][col] - 1
+        matrix[row][col-1] + 1
+        return matrix
+
+    if direction == 'right':
+        matrix[row][col] - 1
+        matrix[row][col+1] + 1
+        return matrix
+
+    if direction == 'left-back':
+        #
+        matrix[row][col] - 1
+        matrix[row-1][col-1] + 1
+        return matrix
+
+    if direction == 'left-forward':
+        matrix[row][col] - 1
+        matrix[row+1][col-1] + 1
+        return matrix
+
+    if direction == 'right-back':
+        matrix[row][col] - 1
+        matrix[row-1][col+1] + 1
+        return matrix
+
+    if direction == 'right-forward':
+        matrix[row][col] - 1
+        matrix[row+1][col+1] + 1
+        return matrix
+    return
+
+def bus_flow():
+    # this function applies matrix math to an incoming array of arrays of numbers
+
+    return
+
+
+def calculate_air_flow_by_step(mask_type='cloth'):
+    # This function, in two steps, calculates air flow in different parts of the room
+
+    # At each step: determine how far air would have traveled from each student----- assume well-mixed @ origin
+    # Vent always blowing: use average / hour?
+
+    # How far does air travel given mask type X? How fast does it get there?
+
+    # This function affects effective ACH of the individual
+
+
+    # return matrix of exhaled droplets
+    return
+
+def calculate_risk_areas_iteratively(length, width, height, type='room', num_steps=12, num_students=25, iterations=1000):
+    # This function runs infection calculation ## iterations ## times in room of given size and shape
+
+    # Take average of how many times each get infected
+
+    # plot scatter of positions, label with # times each gets infected / # model runs
+
+    # output grid with risky areas of the room
+    # .1 meter grid squares
+    if type == 'room':
+        # plot room using l / w / h
+        pass
+
+    if type == 'bus':
+        pass
+
+    return
+
+
+def one_or_more_infected():
+    # returns % likelihood that 1+ students gets infected given input parameters and? initial infections
+
+    return
 
 def create_color_viz(infect_times, num_students = 25):
     # plot students in a grid / in seating chart - Talk to Johnny abt full model
@@ -185,8 +295,13 @@ def create_color_viz(infect_times, num_students = 25):
     plt.scatter(inf_x_arr, inf_y_arr, color='red')
     plt.show()
 
+    for i in range(len(inf_x_arr)):
+        # scatter
+        print(inf_x_arr[i])
+
     # TODO: loop through timesteps and/or skip to next timestep and replot
     # i.e. step 0: 2 infected, step 27: 3 infected, etc etc
+
 
     return
 
