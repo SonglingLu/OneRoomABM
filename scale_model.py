@@ -30,6 +30,8 @@ def init_positions(floor_area, n_students):
         for j in range(rows):
             positions[count] = [i, j]
             count += 1
+
+
     inf_index = random.sample(set(range(n_students)), 2)
     uninf_index = list(range(n_students))
     inf_array = []
@@ -79,17 +81,12 @@ def directional_air(matrix, row, col, direction='back'): # back of the bus = dow
     # dir_matrix is a np.array
     # risk_matrix is a pd.dataframe
 
-
-    # is 1 good for ACH? use as proxy for now
-    # proxy for now is 1 for both aerosol emission and air flow (on bus)
-    # TODO: classroom
-    # TODO: this can probably be EASILY optimized numerically
-    # ETA: 3/14
-
-    # 2 steps:
-    # 1. make +/- matrix:
-    # 2. loop through and combine original and +/-
-    # plus_matrix
+    # direction = a number 0-9
+    # numpad directions:
+    # 7 8 9   <^ ^ ^>
+    # 4 5 6   <  -  >
+    # 1 2 3   <v v v>
+    #   0
 
     # fix this function now
 
@@ -143,6 +140,8 @@ def matrix_avg(input_matrices):
     '''
     calculate mean for every mutual [i,j] in input
     list of np.arrays
+
+    function to be used in calculating which seats are riskiest
     '''
     return
 
@@ -171,6 +170,7 @@ def create_color_viz(infect_times, num_students = 25):
         inf_x_arr.append(positions[inf][0])
         inf_y_arr.append(positions[inf][1])
 
+
         # color dot red
 
     # plot uninfected in blue
@@ -178,16 +178,8 @@ def create_color_viz(infect_times, num_students = 25):
     # plot infected in red
     # only output last frame for now:
     plt.scatter(inf_x_arr, inf_y_arr, color='red')
+    # add plt title and description
     plt.show()
-
-    # for i in range(len(inf_x_arr)):
-    #     # scatter
-    #     print(inf_x_arr[i])
-
-    # TODO: loop through timesteps and/or skip to next timestep and replot
-    # i.e. step 0: 2 infected, step 27: 3 infected, etc etc
-
-
     return
 
 def create_plot_viz(infect_times, infect_distrib):
@@ -197,15 +189,53 @@ def create_plot_viz(infect_times, infect_distrib):
     # print('times', times)
     step_x_array = times
     step_y_array = [i for i in range(len(times))]
-    plt.step(step_x_array, step_y_array) # label timestep above each infection
+    plt.step(step_x_array, step_y_array) # label timestep and id # above each infection
+    # add ax annotate? or plt annotate?
+    # add plt title and description
     plt.show()
 
     # plot distribution of infection rate over course of model run
-    plt.hist(infect_distrib, bins=50)
+    plt.hist(infect_distrib)#, bins=50)
     plt.gca().set(title='Transmission likelihood distribution')
+    # add plt title and description
     plt.show()
 
     return
+
+
+def bus_infections():
+    # create .1 x .1 x .1 m cubic space for bus
+    length, width, height = 17, 23, 114
+
+    # fill space with student getting on bus
+
+    # seating plan
+
+    # student behavior (get on bus, walk to assigned seat)
+
+    # initialize aerosol exhalation with first student onto bus
+
+    ## Float values in cubes are == 'potential proportional infectious quanta'
+    ## i.e. value 0-1 with 1 = 'calculate aerosol infection'
+    # mark as 'exposed'
+
+    # initialize cubes with direction and velocity
+    # particles in a given cube tend to move in the direction of the arrow:
+    # i.e. a cube with direction [X+ Y+ Z-] and velocity 2
+    # (1 - .1 * [velocity]) = .8 --> 80% of particles move in the +X +Y -Z direction
+
+
+
+    return
+
+def distance_demo():
+    # this function produces a sliding scale of risk based on distance and initial infectivity
+
+    # 'approx time '
+    return
+
+
+
 
 # Go by standards mandated by school district in terms of masks and setup
 def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False):
@@ -282,14 +312,19 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
     step_count = 0
     infect_plot_dict = {}
 
+    student_infections = {} # this dict stores # times each student infects another via droplet
+    # which students are infected is already output
+
     # temp
     min = 1
     max = 0
     trans_array = []
     infection_timesteps = {}
+    num_they_infect = {}
     for i in inf_index:
         infection_timesteps[i] = 0
-    # print(infection_timesteps)
+    for j in range(num_people):
+        num_they_infect[j] = 0
 
     # generate plotline of num_infected using minimum default input: no masks, bad airflow, etc
 
@@ -323,7 +358,9 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
                         try:
                             transmission = droplet_infect(i_student, u_student, infected, student_pos, infective_df, chu_distance_curve).iloc[0]
                             trans_array.append(transmission)
+                            # print(transmission)
                         except:
+                            # print('wrong')
                             transmission = droplet_infect(i_student, u_student, infected, student_pos, infective_df, chu_distance_curve)
                             # print(transmission)
                             # break
@@ -337,6 +374,7 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
                             inf_array.append(u_student)
 
                             infection_timesteps[u_student] = step_count
+                            num_they_infect[u_student] += 1
                             # also calculate time until symptoms for u_student
 
                             uninf_index.remove(u_student)
@@ -359,23 +397,31 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
                     pass
 
     out = 2 # count number students in inf_index
-    print('this is the number of infected students: ' + str(len(inf_array)))
-    print('these are the infected student IDs: ' + str(inf_array))
-    print('this is when they were infected: ' + str(infection_timesteps))
+    # print('this is the number of infected students: ' + str(len(inf_array)))
+    # print('these are the infected student IDs: ' + str(inf_array))
+
+
+    # print('this is when they were infected: ' + str(infection_timesteps))
     # print(np.min(trans_array), np.max(trans_array), 'min, max')
     # print(np.mean(trans_array), 'mean')
 
     # '''
     if viz_checkd:
-
-        create_color_viz(infection_timesteps, 25)
-        print(infection_timesteps, 'time')
-
-        create_plot_viz(infection_timesteps, trans_array)
+        pass
+        # create_color_viz(infection_timesteps, 25)
+        # print(infection_timesteps, 'time')
+        #
+        # create_plot_viz(infection_timesteps, trans_array)
+        # return inf_array, infection_timesteps
     # '''
+    # create_color_viz(infection_timesteps, 25)
+    # print(infection_timesteps, 'time')
 
+    # create_plot_viz(infection_timesteps, trans_array)
     # also return list of IDs infected
-    return inf_array
+    # print(num_they_infect)
+    return inf_array, infection_timesteps# num_they_infect
+
 
 def scatter_collect(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth',
  num_days=5, num_class=3, vent_test=False, n_runs=10): # also add one_room inputs, use this as run.py command
@@ -387,24 +433,68 @@ def scatter_collect(input_dir, output_dir, viz_checkd, num_people=25, mask_type=
     Y = # times infectious/infective/infected by the model
     X = avg distance from other points
 
-    i.e. Y =
-    a dictionary with {ID: % of time infected}
-    X =
-    a dictionary with {ID: Avg distance from other individuals}
+    i.e. X =
+    a dictionary with {ID: # of times infected}
+    Y =
+    a dictionary with {ID: # people infected}
 
     ### TODO: think of better X variable
     '''
+
+    # if saved_scatter in folder: plot those values
+
+    # for file in folder:
+    # temp = open(), plot #s, close()
+    # check if this json file exists
+    # if yes, exit function: don't plot the same points twice
+
+    fig, ax = plt.subplots()
+    n_students = 25
+    positions = {}
+    # grid desks
+    rows = int(math.sqrt(n_students))
+    count = 0
+    for i in range(rows):
+        for j in range(rows):
+            positions[count] = [i, j]
+            count += 1
+
+    # GET OUT THE RIGHT # OF INFECTED PEOPLE
     id_counts = {i: 0 for i in range(num_people)}
+    actually_infected = {i: 0 for i in range(num_people)}
+    # num_they_infect_ = {i: 0 for i in range(num_people)}
     for run in range(n_runs):
-        infected = one_room("src/data/default", "src/data", viz_checkd=False, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False)
+        infected, what_times = one_room("src/data/default", "src/data", viz_checkd=False, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False)
+        # , num_they_infect
+        # print(infected)
         for id in infected:
             id_counts[id] += 1
-    x = id_counts.values()
-    y = id_counts.values()
-    print(len(y))
-    plt.scatter(x, y)
+        for new_infections in infected[2:]:
+            actually_infected[id] += 1
+        # print(what_times)
+        # for i in range(len(num_they_infect)):
+        #     num_they_infect_[i] += num_they_infect[i]
+    # print(num_they_infect_)
+    # x = id_counts.values()
+
+    actual_infections = {id: num_times / n_runs for id, num_times in actually_infected.items()}
+
+    # print(id_counts)
+    # print(positions)
+    x_arr = []
+    y_arr = []
+    c_arr = []
+    for i in range(len(positions)):
+        pos = positions[i]
+        x_arr.append(pos[0])
+        y_arr.append(pos[1])
+        c_arr.append(actual_infections[i])
+    plt.scatter(x_arr, y_arr, c=c_arr)
+    plt.colorbar()
+    plt.title('seat infectiveness risk')
     plt.show()
 
+    # save all XY output to json file
 
     # temp = one_room
     # get one_room to output which IDs are infected and their distance from other individuals
@@ -413,11 +503,28 @@ def scatter_collect(input_dir, output_dir, viz_checkd, num_people=25, mask_type=
 
 def get_dist_multiplier(distance, chu_distance_curve):
 # TODO: update this function with correct Chu Calculation from SchoolABM
-    return distance * chu_distance_curve
+    # is it chu ** dist ? double check tonight
+    bathroom_break = np.random.choice([True, False], p=[4/25, 21/25])
+    mu, sigma = 0, .5 # mean, standard deviation in meters to simulate movement
+    if bathroom_break:
+        temp = np.random.normal(mu, sigma, 1)
+        distance = distance + temp
+    return (chu_distance_curve)**(distance)
 
 def droplet_infect(infect_id, uninfect_id, infected, student_pos, infective_df, chu_distance_curve, mask_passage_prob=.1):
     # Function to return transmission % from larger droplets
-    # TODO: update breathing rate calculation w/ SchoolABM version
+    '''
+    Function to calculate infection via 'large particles'
+    Defined as exhaled airborne particles >5 micrometers in size
+
+    - other papers cite 2 micrometers, 5, 10, 50, or even 100 micrometers as the cutoff
+
+    [effect of distance on # of viral particles that reach that distance] *
+    [probability of infectivity given time until symptoms are expected] *
+    ([effect of breathing rate and quanta of virions in exhaled/inhaled air] *
+    [effect of mask type]) ^ 2
+
+    '''
 
     distance = get_distance(infect_id, uninfect_id, student_pos)
     time = infected[infect_id]
@@ -430,13 +537,14 @@ def droplet_infect(infect_id, uninfect_id, infected, student_pos, infective_df, 
     # get distance from chu
     distance_multiplier = get_dist_multiplier(distance, chu_distance_curve)
     # approximate student time spent breathing vs talking vs loudly talking
-    breathing_type_multiplier = np.random.choice([.1, .5, 1], p=[.2, .05, .75])#############################
+    breathing_type_multiplier = np.random.choice([.5, .05, 1], p=[.2, .05, .75])#############################
     # whisper, loud, heavy
 
-    mask_multiplier = mask_passage_prob # equivalent to aerosol masks
+    mask_multiplier = np.random.choice([.05, .3, .5, 1], p=[.1, .5, .3, .1])
+    #mask_passage_prob # equivalent to aerosol masks
 
     # convert transmission rate / hour into transmission rate / step
-    hour_to_fivemin_step = 5/60
-    # test if necessary
+    hour_to_fivemin_step = 5/60 # hourly transmission rate --> (5-min) transmission rate
+    # 5 minute timesteps
 
-    return transmission_baseline * distance_multiplier * breathing_type_multiplier * mask_multiplier * hour_to_fivemin_step
+    return transmission_baseline * distance_multiplier * (breathing_type_multiplier * mask_multiplier)**2 * hour_to_fivemin_step / 100

@@ -41,13 +41,6 @@ def main(targets):
         # one_room(temp['input_dir'], temp['output_dir'], False) #implement additional input variable in one_room()
         return
 
-    if 'bus_flow' in targets:
-        # output quiver plot and ??contour plot?? for bus of input type
-        temp = load_parameters(BUS_PARAMS)
-        # one_room(temp['input_dir'], temp['output_dir'], False, )
-
-        return
-
     if 'scatter' in targets:
         temp = load_parameters(SCALE_MODEL_PARAMS)
         scatter_collect(temp['input_dir'], temp['output_dir'], False)
@@ -57,24 +50,24 @@ def main(targets):
         # remove files from scatter_folder
         return
 
+    if 'avg' in targets:
+        # calculate and plot # of times infected / 1000 model runs
+        return
+
     if 'visualize' in targets:
-        print('targets: ')
-        print(targets)
         # one room viz using website / airavata inputs
         temp = load_parameters(SCALE_MODEL_PARAMS)
         temp_viz = load_parameters(VIZ_PARAMS)
         one_room(temp['input_dir'], temp['output_dir'], True) #implement viz params and viz code
-        # visualize_infection() takes in timesteps of infection and returns a plotted visualization w/ red = inf, green = not inf
-
-        # plot_infection() demonstrates the 'animations' with an XY plot of number individuals infected (X) vs timesteps of 5 mins (Y)
-
-
-        # TODO: get help from Kaushik w/ Airavata inputs
-
-        # TODO: get help from team for website integration
         return
 
-        # set up variables
+
+    if 'bus_flow' in targets:
+        # output quiver plot and ??contour plot?? for bus of input type
+        temp = load_parameters(BUS_PARAMS)
+        # one_room(temp['input_dir'], temp['output_dir'], False, )
+
+        return
 
     return
 
