@@ -4,6 +4,41 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
+########## default transmission variables
+# setup default infection parameters
+
+floor_area = 86.02  # ft2 # 11.4 m * 2.3 m * (m^2->ft^2) = 86.02 ~= 86 ft^2
+mean_ceiling_height = 12  # ft # 1.85 m -> ft = 6.06 ~= 6 ft
+air_exchange_rate = 20  # /hr (air changes per hour (ACH)) #moving bus mph average
+
+
+##Assumed Parameter Identified as 0.2 for Classrooms, 1.0 for outdoors#
+# and .5 for buses with windows open
+primary_outdoor_air_fraction = 0.5  # 1.0 = natural ventilation
+aerosol_filtration_eff = 0  # >0.9997 HEPA, =0.2-0.9 MERVs, =0 no filter
+# bus has no filter
+
+#Average daily RH for San Diego is 69%
+relative_humidity = 0.69
+physical_params = [floor_area, mean_ceiling_height, air_exchange_rate, primary_outdoor_air_fraction,
+                        aerosol_filtration_eff, relative_humidity]
+
+# Physiological Parameters
+breathing_flow_rate = 0.5  # m3/hr
+max_aerosol_radius = 2  # micrometers
+physio_params = [breathing_flow_rate, max_aerosol_radius]
+
+# Disease Parameters
+exhaled_air_inf = 30  # infection quanta/m3, changes with acitivity type.
+max_viral_deact_rate = 0.3  # /hr
+disease_params = [exhaled_air_inf, max_viral_deact_rate]
+
+# Precautionary Parameters
+mask_passage_prob = .1 # 1 = no masks, ~0.1 cloth, <0.05 N95
+risk_tolerance = 0.1  # expected transmissions per infector
+prec_params = [mask_passage_prob, risk_tolerance]
+
 def generate_infectivity_curves():
     '''
     in:
@@ -29,7 +64,7 @@ def generate_infectivity_curves():
 
     return [s_l_s_symptom_countdown, x_symptom_countdown, s_l_s_infectivity_density, x_infectivity, chu_distance]
 
-def plot_infectivity_curves(in_array):
+def plot_infectivity_curves(in_array, plot=True):
     '''
     plot our sampling process with 2 vertically stacked plots
 
@@ -42,8 +77,9 @@ def plot_infectivity_curves(in_array):
     Lognorm plot of estimated days until symptoms appear
 
     '''
-    fig, ax = plt.subplots(1)
-    fig2, ax2 = plt.subplots(1)
+    if plot:
+        fig, ax = plt.subplots(1)
+        fig2, ax2 = plt.subplots(1)
     sls_symp_count, x_symp_count, s_l_s_infectivity_density, x_infectivity, distance_multiplier = in_array
     l_shape, l_loc, l_scale = sls_symp_count
     g_shape, g_loc, g_scale = s_l_s_infectivity_density
@@ -51,9 +87,33 @@ def plot_infectivity_curves(in_array):
 
     infective_df = pd.DataFrame({'x': list(x_infectivity), 'gamma': list(stats.gamma.pdf(x_infectivity, a=g_shape, loc=g_loc, scale=g_scale))})
 
+    if plot:
+        ax.plot(x_symp_count, countdown_curve.pdf(x_symp_count), 'k-', lw=2)
+        ax2.plot(x_infectivity, infective_df.gamma)
+        return
+    else:
+        return infective_df
 
-    ax.plot(x_symp_count, countdown_curve.pdf(x_symp_count), 'k-', lw=2)
 
-    ax2.plot(x_infectivity, infective_df.gamma)
+def return_aerosol_transmission_rate(floor_area, room_height, air_exchange_rate,
+                            aerosol_filtration_eff, relative_humidity, breathing_flow_rate,
+                            exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
+                            max_aerosol_radius=2, primary_outdoor_air_fraction=0.2):
+                            '''
+                            derived by Kaushik
+                            '''
+                            mean_ceiling_height_m = mean_ceiling_height * 0.3048 #m3
+                            room_vol = floor_area * mean_ceiling_height  # ft3
+                            room_vol_m = 0.0283168 * room_vol  # m3
 
-    return
+                            fresh_rate = room_vol * air_exchange_rate / 60  # ft3/min
+                            recirc_rate = fresh_rate * (1/primary_outdoor_air_fraction - 1)  # ft3/min
+                            air_filt_rate = aerosol_filtration_eff * recirc_rate * 60 / room_vol  # /hr
+                            eff_aerosol_radius = ((0.4 / (1 - relative_humidity)) ** (1 / 3)) * max_aerosol_radius
+                            viral_deact_rate = max_viral_deact_rate * relative_humidity
+                            sett_speed = 3 * (eff_aerosol_radius / 5) ** 2  # mm/s
+                            sett_speed = sett_speed * 60 * 60 / 1000  # m/hr
+                            conc_relax_rate = air_exchange_rate + air_filt_rate + viral_deact_rate + sett_speed / mean_ceiling_height_m  # /hr
+                            airb_trans_rate = ((breathing_flow_rate * mask_passage_prob) ** 2) * exhaled_air_inf / (room_vol_m * conc_relax_rate)
+
+                            return airb_trans_rate #This is mean number of transmissions per hour between pair of infected / healthy individuals
