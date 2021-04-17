@@ -89,8 +89,24 @@ def plot_infectivity_curves(in_array, plot=True):
 
     if plot:
         ax.plot(x_symp_count, countdown_curve.pdf(x_symp_count), 'k-', lw=2)
+        ax.set_title('Expected days until symptoms appear')
+        ax.set_xlabel('Number of days')
+        ax.set_ylabel('Proportion of infected individuals')
+
+                # Save just the portion _inside_ the first  axis's boundaries
+        extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig('Days_to_Symp.png', dpi=300)
+
         ax2.plot(x_infectivity, infective_df.gamma)
-        return
+        ax2.set_title('Expected infectivity before symptoms appear')
+        ax2.set_xlabel('Number of days')
+        ax2.set_ylabel('Initial Infectivity')
+
+                # Save just the portion _inside_ the second  axis's boundaries
+        extent2 = ax2.get_window_extent().transformed(fig2.dpi_scale_trans.inverted())
+        fig2.savefig('Infectivity_Dynamics.png', dpi=300)
+
+        return infective_df
     else:
         return infective_df
 
@@ -100,7 +116,7 @@ def return_aerosol_transmission_rate(floor_area, room_height, air_exchange_rate,
                             exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
                             max_aerosol_radius=2, primary_outdoor_air_fraction=0.2):
                             '''
-                            derived by Kaushik
+
                             '''
                             mean_ceiling_height_m = mean_ceiling_height * 0.3048 #m3
                             room_vol = floor_area * mean_ceiling_height  # ft3

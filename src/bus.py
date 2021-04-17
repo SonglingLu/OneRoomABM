@@ -229,6 +229,8 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_aerosol): # do 1 trip w
     concentration_array = concentration_distribution(n_sims, n_sims, bus_flow_pos)
     concentration_ = concentration_array[-1]
 
+    run_average_array = []
+
     for run in range(n_sims):
         # initialize student by random selection# initial
         initial_inf_id = np.random.choice(list(who_infected_bus.keys()))
@@ -244,6 +246,8 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_aerosol): # do 1 trip w
         init_infectivity = inf_df.iloc[init_time_to_symp].gamma
 
         temp_average_array = temp_rates.copy()
+
+        run_chance_of_0 = 1
 
         for step in range(num_steps): # infection calculated for 5-minute timesteps
             # bus trip 1way
@@ -269,33 +273,31 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_aerosol): # do 1 trip w
                     if np.random.choice([True, False], p=[transmission, 1-transmission]):
                         who_infected_bus[student_id] += 1
                     # if infected:
+                    run_chance_of_0 *= (1-transmission)
 
                     # output temp is for each step
                     temp_average_array[student_id].append(transmission)
 
+        run_average_array.append(1 - run_chance_of_0) # add chance of nonzero to array
         # takes average over model run
         for id in bus_flow_pos.keys():
+
             transmission_bus_rates[id] = np.mean(temp_average_array[id])
+
+
 
     # takes average over all runs
     for id in bus_flow_pos.keys():
+
         averaged_all_runs[id] = np.mean(transmission_bus_rates[id])
-    # output: dict of id and avg distance from initial
-    # output: % chance over run that >= 1 student gets infected
-
-    # output =
-    # output of trip
-
-        # output: array of % chance of infection
-
-        # output: array of distance from initially infected
-
-        # output: %infect for neighbors/close/far [<1 m, 1-2m, >2m]
 
 
-    # value = averaged % of >=1 infection
-    # calculate for each trip
-    return averaged_all_runs, concentration_array
+    # average risk of >= 1 infection across all model runs
+    run_avg = np.mean(run_average_array)
+
+    # OUTPUT AVERAGE LIKELIHOOD OF >= 1 INFECTION
+
+    return averaged_all_runs, concentration_array, run_avg
 
 def trip_stats():
     '''
