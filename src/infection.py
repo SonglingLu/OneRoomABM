@@ -3,6 +3,7 @@ import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
+import json
 
 
 ########## default transmission variables
@@ -110,10 +111,22 @@ def plot_infectivity_curves(in_array, plot=True):
     else:
         return infective_df
 
+def load_parameters(filepath):
+    '''
+    Loads input and output directories
+    '''
+    with open(filepath) as fp:
+        parameter = json.load(fp)
 
-def return_aerosol_transmission_rate(floor_area, room_height, air_exchange_rate,
-                            aerosol_filtration_eff, relative_humidity, breathing_flow_rate,
-                            exhaled_air_inf, max_viral_deact_rate, mask_passage_prob,
+    return parameter
+dp = load_parameters('config/default.json')
+
+
+
+
+def return_aerosol_transmission_rate(floor_area=dp['floor_area'], room_height=dp['mean_ceiling_height'], air_exchange_rate=dp['air_exchange_rate'],
+                            aerosol_filtration_eff=dp['aerosol_filtration_eff'], relative_humidity=dp['relative_humidity'], breathing_flow_rate=dp['breathing_flow_rate'],
+                            exhaled_air_inf=dp['exhaled_air_inf'], max_viral_deact_rate=dp['max_viral_deact_rate'], mask_passage_prob=dp['mask_passage_prob'],
                             max_aerosol_radius=2, primary_outdoor_air_fraction=0.2):
                             '''
 

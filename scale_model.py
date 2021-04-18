@@ -43,9 +43,6 @@ def init_positions(floor_area, n_students):
         inf_array.append(i)
     return uninf_index, inf_index, inf_array, positions
 
-
-
-
 def return_aerosol_transmission_rate(floor_area, mean_ceiling_height,
                             air_exchange_rate,
                             aerosol_filtration_eff, relative_humidity, breathing_flow_rate,
@@ -202,41 +199,6 @@ def create_plot_viz(infect_times, infect_distrib):
 
     return
 
-
-def bus_infections():
-    # create .1 x .1 x .1 m cubic space for bus
-    length, width, height = 17, 23, 114
-
-    # fill space with student getting on bus
-
-    # seating plan
-
-    # student behavior (get on bus, walk to assigned seat)
-
-    # initialize aerosol exhalation with first student onto bus
-
-    ## Float values in cubes are == 'potential proportional infectious quanta'
-    ## i.e. value 0-1 with 1 = 'calculate aerosol infection'
-    # mark as 'exposed'
-
-    # initialize cubes with direction and velocity
-    # particles in a given cube tend to move in the direction of the arrow:
-    # i.e. a cube with direction [X+ Y+ Z-] and velocity 2
-    # (1 - .1 * [velocity]) = .8 --> 80% of particles move in the +X +Y -Z direction
-
-
-
-    return
-
-def distance_demo():
-    # this function produces a sliding scale of risk based on distance and initial infectivity
-
-    # 'approx time '
-    return
-
-
-
-
 # Go by standards mandated by school district in terms of masks and setup
 def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False):
 
@@ -264,9 +226,20 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
 
     uninfected = {i: 0 for i in uninf_index}
 
-    ##### TODO: Get these inputs from default only if not available in user input
-    deff = open('src/data/default.json',)
-    floor_plan = json.load(deff)
+    # set default params here
+    floor_plan = {"floor_area": 900,
+     "mean_ceiling_height": 12,
+     "air_exchange_rate": 3,
+     "primary_outdoor_air_fraction": 0.2,
+     "aerosol_filtration_eff": 0,
+     "relative_humidity": 0.69,
+     "breathing_flow_rate": 0.5,
+     "max_aerosol_radius": 2,
+     "exhaled_air_inf": 30,
+     "max_viral_deact_rate": 0.3,
+     "mask_passage_prob": 0.1,
+     "risk_tolerance": 0.1}
+
     # for i in floor_plan:
     #     print(i)
     # deff.close()
@@ -464,7 +437,8 @@ def scatter_collect(input_dir, output_dir, viz_checkd, num_people=25, mask_type=
     actually_infected = {i: 0 for i in range(num_people)}
     # num_they_infect_ = {i: 0 for i in range(num_people)}
     for run in range(n_runs):
-        infected, what_times = one_room("src/data/default", "src/data", viz_checkd=False, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False)
+        print('THIS SHOULDNT RUN')
+        infected, what_times = one_room("../src/data/default", "src/data", viz_checkd=False, num_people=25, mask_type='cloth', num_days=5, num_class=3, vent_test=False)
         # , num_they_infect
         # print(infected)
         for id in infected:

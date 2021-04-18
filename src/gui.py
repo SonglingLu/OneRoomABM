@@ -4,6 +4,13 @@ from tkinter import ttk
 import json
 import sys
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from bus import bus_sim
+from infection import return_aerosol_transmission_rate
+
 def load_parameters_gui():
     '''
     Loads input and output directories
@@ -55,6 +62,8 @@ class user_viz(tk.Frame):
         self.students_label.grid(row=4, column=1)
 
         self.student_temp = tk.StringVar(self)
+
+        # 28 (50% capacity)
         self.student_option_dict = {"Bus": [28, 56], "Classroom": [10, 25, 40]}
 
         self.students_var_list = self.student_option_dict[self.model_var.get()]
@@ -76,14 +85,12 @@ class user_viz(tk.Frame):
         # selfs
         self.Frame_label = tk.Label(self, text="Windows Open (inches)")
         self.Frame_label.grid(row=8, column=1)
-
         self.Frame_options = {"Bus": ["0 inches", "6 inches"], "Classroom": ["0 inches", "3 inches", "6 inches", "9 inches", "12 inches"]}
-
         self.Frame_var = tk.StringVar(self)
         self.Frame_var.set(self.Frame_options[self.model_var.get()][0])
-
         self.Frame_choice = tk.OptionMenu(self, self.Frame_var, *self.Frame_options)
         self.Frame_choice.grid(row=9, column=1)
+
         # button widget for transmission params
         self.t_window = tk.Button(self, text="Transmission Parameters", command=self.openT_P)
         self.t_window.grid(row=4, column=2)
@@ -93,6 +100,19 @@ class user_viz(tk.Frame):
 
         self.prev_run = tk.Button(self, text="Previous runs", command=self.viz_previous)
         self.prev_run.grid(row=8, column=2)
+
+        # init other self variables for aerosol
+        self.floor_area  = tk.StringVar()
+        self.mean_ceiling_height  = tk.StringVar()
+        self.air_exchange_rate  = tk.StringVar()
+        self.primary_outdoor_air_fraction  = tk.StringVar()
+        self.aerosol_filtration_eff  = tk.StringVar()
+        self.relative_humidity  = tk.StringVar()
+        self.breathing_flow_rate  = tk.StringVar()
+        self.max_aerosol_radius  = tk.StringVar()
+        self.exhaled_air_inf  = tk.StringVar()
+        self.max_viral_deact_rate  = tk.StringVar()
+        self.mask_passage_prob  = tk.StringVar()
 
     def update_var(self, *args):
         '''
@@ -113,8 +133,6 @@ class user_viz(tk.Frame):
         for j in temp:
             temp_menu.add_command(label=j, command=lambda new=i: self.Frame_var.set(j))
 
-
-
     # function to open new window
     def openT_P(self):
         # top level opject to be treated as window
@@ -134,8 +152,43 @@ class user_viz(tk.Frame):
         self.mask_wearing_chance.pack()
 
 
+        self.num_sims_label = tk.Label(self.newWindow, text="Number of Simulations")
+        self.num_sims_label.pack()
+        temp = tk.StringVar(window, value="100")
+        self.num_sims_chance = tk.Entry(self.newWindow, textvariable=temp)
+        self.num_sims_chance.pack()
+
+        self.trip_length_label = tk.Label(self.newWindow, text="Trip Length")
+        self.trip_length_label.pack()
+        self.trip_length_chance = tk.Entry(self.newWindow)
+        self.trip_length_chance.pack()
+
     # function to run model with user input
-    def model_run():
+    def model_run(self):
+        # get type:
+        type = self.model_var.get()
+        if type == "Bus":
+            # run bus model
+            window = self.Frame_var.get()
+            num_students = int(self.students_var.get())
+            print('n', num_students)
+            mask = self.mask_var.get()
+            num_sims = 100 # get from advanced
+            trip_len = 60 # get from bus trip stops
+            bus_type = "56"
+            bus_trip, conc, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_type) # replace default with selected
+            pd.Series(bus_trip).plot.kde()
+            plt.show()
+
+        elif type == "Classroom":
+            pass # run class model
+
+        else:
+            print('model variable empty somehow')
+        return
+
+    def heatmaps(self):
+        # plot concentration average heatmaps for every step
         return
 
     # visualize previous model runs
@@ -143,14 +196,16 @@ class user_viz(tk.Frame):
 
         return
 
+run = True
 
-window = tk.Tk()
-window.geometry("350x350")
-window.title("Bus and Classroom Risk")
-# window.withdraw()
-# set style
-style = ttk.Style(window)
-style.theme_use('clam')
-app = user_viz(window)
-window.mainloop()
-sys.exit("End gui.py")
+if run:
+    window = tk.Tk()
+    window.geometry("350x350")
+    window.title("Bus and Classroom Risk")
+    # window.withdraw()
+    # set style
+    style = ttk.Style(window)
+    style.theme_use('clam')
+    app = user_viz(window)
+    window.mainloop()
+    sys.exit("End gui.py")

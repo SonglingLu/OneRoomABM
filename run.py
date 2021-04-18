@@ -54,13 +54,14 @@ def main(targets):
         # remove files from scatter_folder
         return
 
+
     if 'gui' in targets:
         # create tkinter GUI
         temp = load_parameters(GUI_PARAMS)
 
         # show_gui(temp)
-        runpy.run_path('../OneRoomABM/src/gui.py')
-        # main(temp)
+        runpy.run_path('../OneRoomABM/src/gui.py') # run main?
+        # this outputs the parameters
 
 
         return
@@ -71,6 +72,7 @@ def main(targets):
         temp_viz = load_parameters(VIZ_PARAMS)
         one_room(temp['input_dir'], temp['output_dir'], True) #implement viz params and viz code
         return
+
 
 
     if 'bus_flow' in targets:
