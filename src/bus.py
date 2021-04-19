@@ -6,8 +6,6 @@ from scipy import stats
 import sys
 import json
 import os
-cwd = os.getcwd()
-print(cwd, 'cwd')
 
 # import from infection.py
 from infection import generate_infectivity_curves, plot_infectivity_curves, return_aerosol_transmission_rate
@@ -21,15 +19,31 @@ def load_parameters(filepath):
 
     return parameter
 
+try:
+    seats_for_28 = load_parameters('config/seating_28.json')
+    seats_for_56 = load_parameters('config/seating_56.json')
+    f_seats_for_28 = load_parameters('config/f_seating_28.json')
+    f_seats_for_56 = load_parameters('config/f_seating_56.json')
+    aerosol_params = load_parameters('config/aerosol.json')
+    dp = load_parameters('config/default.json')
+    select_dict = load_parameters('config/neighbor_logic.json')
 
-seats_for_28 = load_parameters('config/seating_28.json')
-seats_for_56 = load_parameters('config/seating_56.json')
-f_seats_for_28 = load_parameters('config/f_seating_28.json')
-f_seats_for_56 = load_parameters('config/f_seating_56.json')
-aerosol_params = load_parameters('config/aerosol.json')
-dp = load_parameters('config/default.json')
+except:
+    seats_for_28 = load_parameters('../config/seating_28.json')
+    seats_for_56 = load_parameters('../config/seating_56.json')
+    f_seats_for_28 = load_parameters('../config/f_seating_28.json')
+    f_seats_for_56 = load_parameters('../config/f_seating_56.json')
+    aerosol_params = load_parameters('../config/aerosol.json')
+    dp = load_parameters('../config/default.json')
+    select_dict = load_parameters('../config/neighbor_logic.json')
 
-select_dict = load_parameters('config/neighbor_logic.json')
+# cwd = os.getcwd()
+# print(cwd, 'cwd')
+# if cwd[-9:] == 'notebooks':
+#     dp = load_parameters('../config/default.json')
+# else:
+#     dp = load_parameters('config/default.json')
+
 
 def get_distance_bus(student_pos, this_id, initial_id):
     x1, y1 = student_pos[initial_id]
@@ -60,17 +74,19 @@ def get_incoming(x, y, old):
     this_direction = bus_flow_direction[x][y]
     this_velocity = bus_flow_velocity[x][y]
 
-    # flower petal arrow assumption:
-    # if arrow = directly towards, 50% of quanta will go from neighbor -> selected
     dict_iterate_count = 0
     for i in x_range:
         for j in y_range:
             dict_iterate_count += 1
             if i == 0 and j == 0:
+                # disperse .1 to all 8 neighboring squares
                 pass
             else:
                 # factors in neighboring cell
                 direction = bus_flow_direction[x + i][y + j]
+
+                # update direction function
+
                 if direction in select_dict[str([i, j])]:
                     idx = select_dict[str([i, j])].index(direction)
                     vel_idx = bus_flow_velocity[x + i][y + j]
@@ -179,7 +195,7 @@ bus_flow_velocity = np.array([[3,3,2,1,1,0,1],
     [1,1,1,1,0,0,0],
     [1,1,0,0,0,0,0]])
 #
-print('d', dp)
+# print('d', dp)
 
 def concentration_distribution(num_steps, num_sims, bus_flow_pos):
     '''
@@ -197,6 +213,7 @@ def concentration_distribution(num_steps, num_sims, bus_flow_pos):
     for step in range(num_steps):
         temp, initial = make_new_heat(temp, bus_flow_pos, init_infected_=None)
         temp_array.append(temp)
+
     return temp_array
 
 def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with given params
@@ -229,14 +246,31 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
     l_shape, l_loc, l_scale = sls_symp_count
     g_shape, g_loc, g_scale = s_l_s_infectivity_density
 
-    print(dp, 'default')
+    # print(dp, 'default')
     bus_aerosol = return_aerosol_transmission_rate(dp['floor_area'], dp['mean_ceiling_height'], dp['air_exchange_rate'], dp['aerosol_filtration_eff'], dp['relative_humidity'], dp['breathing_flow_rate'], dp['exhaled_air_inf'], dp['max_viral_deact_rate'], dp['mask_passage_prob'])
 
     concentration_array = concentration_distribution(n_sims, n_sims, bus_flow_pos)
-    concentration_ = concentration_array[-1]
-    print(concentration_, 'concentration')
+
+
+    out_matrix = np.array(np.zeros(shape=concentration_array[0].shape))
+    max_val = 0
+    for conc in range(len(concentration_array)):
+        for y in range(concentration_array[conc].shape[0]):
+            for x in range(concentration_array[conc].shape[1]):
+                out_matrix[y][x] += (concentration_array[conc][y][x] / len(concentration_array))
+                if  (concentration_array[conc][y][x] / len(concentration_array)) > max_val:
+                    max_val =  (concentration_array[conc][y][x] / len(concentration_array))
+
+    concentration_ = out_matrix
+    for conc in range(len(concentration_array)):
+        for y in range(concentration_array[conc].shape[0]):
+            for x in range(concentration_array[conc].shape[1]):
+                out_matrix[y][x] / max_val
+    # print(concentration_, 'concentration')
 
     run_average_array = []
+
+
 
     for run in range(n_sims):
         # initialize student by random selection# initial
@@ -256,13 +290,18 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
 
         run_chance_of_0 = 1
 
+
         for step in range(num_steps): # infection calculated for 5-minute timesteps
             # bus trip 1way
             # iterate through students
             for student_id in bus_pos.keys():
                 if student_id != initial_inf_id:
                     # masks wearing %
-                    mask_ = int(mask.split('%')[0]) / 100
+                    cwd = os.getcwd()
+                    if cwd[-8:] == 'notebooks':
+                        mask_ = int(mask.split('%')[0]) / 100
+                    else:
+                        mask_ = mask
                     masks = np.random.choice([.1, 1], p=[mask_, 1-mask_])
 
                     x1, x2, y1, y2 = get_distance_bus(bus_pos, student_id, initial_inf_id)
@@ -274,12 +313,12 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
                     # print(student_id, 'id', air_x, air_y)
 
                     # proxy for concentration
-                    air_flow = concentration_[air_x][air_y]
+                    max_conc = max_val
+                    air_flow = concentration_[air_x][air_y] / max_val
 
                     transmission = (init_infectivity * chu_distance * masks) + (air_flow * bus_aerosol)
-                    if transmission > 0.00002:
-                        print(transmission, 'transmission')
-                        print(air_flow)# * bus_aerosol)
+                    if transmission > 0.02:
+                        print(air_flow, 'af')# * bus_aerosol)
                     # calculate transmissions
                     if np.random.choice([True, False], p=[transmission, 1-transmission]):
                         who_infected_bus[student_id] += 1
@@ -288,27 +327,20 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
 
                     # output temp is for each step
                     temp_average_array[student_id].append(transmission)
-
         run_average_array.append(1 - run_chance_of_0) # add chance of nonzero to array
         # takes average over model run
         for id in bus_flow_pos.keys():
-
             transmission_bus_rates[id] = np.mean(temp_average_array[id])
-
-
-
     # takes average over all runs
     for id in bus_flow_pos.keys():
-
         averaged_all_runs[id] = np.mean(transmission_bus_rates[id])
 
-
     # average risk of >= 1 infection across all model runs
-    run_avg = np.mean(run_average_array)
+    run_avg_nonzero = np.mean(run_average_array)
 
     # OUTPUT AVERAGE LIKELIHOOD OF >= 1 INFECTION
 
-    return averaged_all_runs, concentration_array, run_avg
+    return averaged_all_runs, concentration_array, out_matrix, run_avg_nonzero
 
 def trip_stats():
     '''

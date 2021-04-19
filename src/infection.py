@@ -4,8 +4,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-
-
+import os
 ########## default transmission variables
 # setup default infection parameters
 
@@ -119,7 +118,13 @@ def load_parameters(filepath):
         parameter = json.load(fp)
 
     return parameter
-dp = load_parameters('config/default.json')
+
+cwd = os.getcwd()
+print(cwd, 'cwd')
+if cwd[-9:] == 'notebooks':
+    dp = load_parameters('../config/default.json')
+else:
+    dp = load_parameters('config/default.json')
 
 
 
