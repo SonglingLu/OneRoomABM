@@ -120,7 +120,7 @@ def load_parameters(filepath):
     return parameter
 
 cwd = os.getcwd()
-print(cwd, 'cwd')
+# print(cwd, 'cwd')
 if cwd[-9:] == 'notebooks':
     dp = load_parameters('../config/default.json')
 else:

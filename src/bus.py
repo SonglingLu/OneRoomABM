@@ -81,10 +81,10 @@ def get_incoming(x, y, old):
             if i == 0 and j == 0:
                 # disperse .1 to all 8 neighboring squares
                 pass
+
             else:
                 # factors in neighboring cell
                 direction = bus_flow_direction[x + i][y + j]
-
                 # update direction function
 
                 if direction in select_dict[str([i, j])]:
@@ -95,7 +95,7 @@ def get_incoming(x, y, old):
                     neighb.append(value * magnitude)
                 # else nothing moves in
 
-    if len(neighb) > 0:
+    if len(neighb) > 0: # replaces self.value
         new_val = this_val * (1 - .2 * this_velocity) + np.mean(neighb)
     else:
         new_val = this_val
@@ -216,7 +216,7 @@ def concentration_distribution(num_steps, num_sims, bus_flow_pos):
 
     return temp_array
 
-def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with given params
+def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip with given params
     '''
     in:
     mask %
@@ -231,13 +231,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
     temp_rates = transmission_bus_rates.copy()
     averaged_all_runs = transmission_bus_rates.copy()
 
-    if n_students == 28:
-        bus_pos = seats_for_28
-        bus_flow_pos = f_seats_for_28
-
-    if n_students == 56:
-        bus_pos = seats_for_56
-        bus_flow_pos = f_seats_for_56
+    bus_flow_pos = flow_seating
 
     # get infective_df
     temp = generate_infectivity_curves()
@@ -250,8 +244,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
     bus_aerosol = return_aerosol_transmission_rate(dp['floor_area'], dp['mean_ceiling_height'], dp['air_exchange_rate'], dp['aerosol_filtration_eff'], dp['relative_humidity'], dp['breathing_flow_rate'], dp['exhaled_air_inf'], dp['max_viral_deact_rate'], dp['mask_passage_prob'])
 
     concentration_array = concentration_distribution(n_sims, n_sims, bus_flow_pos)
-
-
+    # return average concentration over run
     out_matrix = np.array(np.zeros(shape=concentration_array[0].shape))
     max_val = 0
     for conc in range(len(concentration_array)):
@@ -267,11 +260,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
             for x in range(concentration_array[conc].shape[1]):
                 out_matrix[y][x] / max_val
     # print(concentration_, 'concentration')
-
     run_average_array = []
-
-
-
     for run in range(n_sims):
         # initialize student by random selection# initial
         initial_inf_id = np.random.choice(list(who_infected_bus.keys()))
@@ -294,18 +283,19 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
         for step in range(num_steps): # infection calculated for 5-minute timesteps
             # bus trip 1way
             # iterate through students
-            for student_id in bus_pos.keys():
+            for student_id in bus_flow_pos.keys():
                 if student_id != initial_inf_id:
                     # masks wearing %
                     cwd = os.getcwd()
-                    if cwd[-8:] == 'notebooks':
+                    if isinstance(mask, str):
                         mask_ = int(mask.split('%')[0]) / 100
+                        masks = np.random.choice([.1, 1], p=[mask_, 1-mask_])
                     else:
-                        mask_ = mask
-                    masks = np.random.choice([.1, 1], p=[mask_, 1-mask_])
+                        print(mask, type(mask))
+                        masks = np.random.choice([.1, 1], p=[mask, 1-mask])
 
-                    x1, x2, y1, y2 = get_distance_bus(bus_pos, student_id, initial_inf_id)
-                    distance = math.sqrt(((10*x2- 10*x1)**2 / 100)+((10*y2- 10*y1)**2 / 100))
+                    x1, x2, y1, y2 = get_distance_bus(bus_flow_pos, student_id, initial_inf_id)
+                    distance = math.sqrt(((.3 * (x2 - x1))**2)+((.3 * (y2-y1))**2))
                     chu_distance = 1 / (2.02 ** distance)
 
                     # for concentraion calculation
@@ -341,16 +331,3 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, bus_type): # do 1 trip with
     # OUTPUT AVERAGE LIKELIHOOD OF >= 1 INFECTION
 
     return averaged_all_runs, concentration_array, out_matrix, run_avg_nonzero
-
-def trip_stats():
-    '''
-    variables:
-    num_model_runs = 100
-
-
-
-    '''
-
-
-
-    return

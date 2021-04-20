@@ -7,6 +7,7 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from bus import bus_sim
 from infection import return_aerosol_transmission_rate
@@ -42,7 +43,7 @@ class user_viz(tk.Frame):
 
         self.model_options = ["Classroom", "Bus"]
         self.model_var = tk.StringVar(self)
-        self.model_var.set(self.model_options[0])
+        self.model_var.set(self.model_options[1])
 
         # # trace if bus or classroom
         self.model_var.trace_add('write', self.update_var)
@@ -60,16 +61,12 @@ class user_viz(tk.Frame):
         # num_students
         self.students_label = tk.Label(self, text="Number of Students")
         self.students_label.grid(row=4, column=1)
-
         self.student_temp = tk.StringVar(self)
-
-        # 28 (50% capacity)
-        self.student_option_dict = {"Bus": [28, 56], "Classroom": [10, 25, 40]}
+        self.student_option_dict = {"Bus": [30, 36, 44, 50, 54, 56], "Classroom": [10, 25, 40]}
 
         self.students_var_list = self.student_option_dict[self.model_var.get()]
         self.students_var =  tk.StringVar(self)
         self.students_var.set(self.students_var_list[0])
-
         self.num_students = tk.OptionMenu(self, self.students_var, *self.students_var_list)
         self.num_students.grid(row=5, column=1)
 
@@ -93,13 +90,29 @@ class user_viz(tk.Frame):
 
         # button widget for transmission params
         self.t_window = tk.Button(self, text="Transmission Parameters", command=self.openT_P)
-        self.t_window.grid(row=4, column=2)
+        self.t_window.grid(row=3, column=2)
+
+        # button widget for setting seating plan type
+        self.seating_options = ["Full seating", "Half full; Zigzag", "Half full; Window seats"]
+        self.seat_var = tk.StringVar(self)
+        self.seat_var.set(self.seating_options[0])
+        self.seating_plan_set = tk.OptionMenu(self, self.seat_var, *self.seating_options)
+        self.seating_plan_set.grid(row=4, column=2)
+
+        # button widget for vis of seating plan
+        # TODO: overlay on top of bus
+        self.seating_plan = tk.Button(self, text="Seating Chart", command=self.generate_bus_seating)
+        self.seating_plan.grid(row=5, column=2)
+
         # button widget for model run
         self.run_btn = tk.Button(self, text="Model Run", command=self.model_run)
         self.run_btn.grid(row=6, column=2)
 
         self.prev_run = tk.Button(self, text="Previous runs", command=self.viz_previous)
         self.prev_run.grid(row=8, column=2)
+
+        self.conc_avg_heat = tk.Button(self, text="Concentration_average", command=self.conc_heat)
+        self.conc_avg_heat.grid(row=9, column=2)
 
         # init other self variables for aerosol
         self.floor_area  = tk.StringVar()
@@ -163,8 +176,61 @@ class user_viz(tk.Frame):
         self.trip_length_chance = tk.Entry(self.newWindow)
         self.trip_length_chance.pack()
 
+    def load_parameters(self, filepath):
+        '''
+        Loads input and output directories
+        '''
+        with open(filepath) as fp:
+            parameter = json.load(fp)
+
+        return parameter
+
+    def generate_bus_seating(self):
+        '''
+        based on full vs zigzag vs edge
+        based on number of students
+        '''
+        # get seating type:
+        temp = self.seat_var.get()
+        if temp == "full seating":
+            seat_dict = self.load_parameters('config/f_seating_full.json')
+        else:
+            if temp == "half full; window seats":
+                seat_dict = self.load_parameters('config/f_seating_half_edge.json')
+            else:
+                seat_dict = self.load_parameters('config/f_seating_half_zig.json')
+        # evaluate temp based on # students
+        num_kids = self.students_var.get()
+        temp_dict = {}
+        for i in range(int(num_kids)):
+            temp_dict[str(i)] = seat_dict[str(i)]
+
+        print(temp_dict)
+        return temp_dict
+
+    def conc_heat(self):
+        '''
+        average over model runs: out_matrix averages
+
+        '''
+
+        return
     # function to run model with user input
     def model_run(self):
+        '''
+        if bus:
+            init variables
+            bus_sim
+            plot transmission density
+            heatmap of run steps: saved to file via names
+
+
+        if class:
+            init variables
+            class_sim
+            plot transmission density
+            heatmap of run steps: saved to file
+        '''
         # get type:
         type = self.model_var.get()
         if type == "Bus":
@@ -174,10 +240,26 @@ class user_viz(tk.Frame):
             print('n', num_students)
             mask = self.mask_var.get()
             num_sims = 100 # get from advanced
-            trip_len = 60 # get from bus trip stops
-            bus_type = "56"
-            bus_trip, conc, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_type) # replace default with selected
-            pd.Series(bus_trip).plot.kde()
+            trip_len = 30 # get from bus trip stops
+            bus_seating = self.generate_bus_seating()
+            bus_trip, conc, out_mat, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_seating) # replace default with selected
+
+
+            # what to do with conc
+
+            # save to file?
+
+            # figure plot logic
+            # title: grab string using get() for variables
+            # sns.set(rc='figure.figsize': (11.8, 8.27))
+            fig, ax = plt.subplots(figsize=(3, 3))
+            s = pd.Series(bus_trip)
+            ax1 = s.plot.kde()
+            # rescale y axis to be proportional
+
+            plt.xticks(np.arange(0, .003, .0005)) # in scientific
+
+
             plt.show()
 
         elif type == "Classroom":
@@ -189,6 +271,10 @@ class user_viz(tk.Frame):
 
     def heatmaps(self):
         # plot concentration average heatmaps for every step
+
+
+
+        # save to folder
         return
 
     # visualize previous model runs
