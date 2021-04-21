@@ -125,6 +125,7 @@ def make_new_heat(old, bus_flow_pos, init_infected_ = None):
     initial_loc = bus_flow_pos[init_infected_]
     new = old.copy()
     out = old.copy()
+    # spatial
     for i in range(len(old)):
         for j in range(len(old[i])):
             dist = math.sqrt(((initial_loc[0] - i)**2) + (initial_loc[1] - j)**2)
