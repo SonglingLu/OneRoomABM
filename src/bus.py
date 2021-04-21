@@ -37,14 +37,6 @@ except:
     dp = load_parameters('../config/default.json')
     select_dict = load_parameters('../config/neighbor_logic.json')
 
-# cwd = os.getcwd()
-# print(cwd, 'cwd')
-# if cwd[-9:] == 'notebooks':
-#     dp = load_parameters('../config/default.json')
-# else:
-#     dp = load_parameters('config/default.json')
-
-
 def get_distance_bus(student_pos, this_id, initial_id):
     x1, y1 = student_pos[initial_id]
     x2, y2 = student_pos[this_id]
@@ -211,7 +203,7 @@ def concentration_distribution(num_steps, num_sims, bus_flow_pos):
     temp_array = []
 
     for step in range(num_steps):
-        temp, initial = make_new_heat(temp, bus_flow_pos, init_infected_=None)
+        temp, initial = make_new_heat(temp, bus_flow_pos, init_infected_=initial)
         temp_array.append(temp)
 
     return temp_array
@@ -231,7 +223,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
     temp_rates = transmission_bus_rates.copy()
     averaged_all_runs = transmission_bus_rates.copy()
 
-    bus_flow_pos = flow_seating
+    bus_flow_pos = flow_seating.copy()
 
     # get infective_df
     temp = generate_infectivity_curves()
@@ -299,7 +291,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
                     chu_distance = 1 / (2.02 ** distance)
 
                     # for concentraion calculation
-                    air_x, air_y = bus_flow_pos[str(student_id)]
+                    air_y, air_x = bus_flow_pos[str(student_id)]
                     # print(student_id, 'id', air_x, air_y)
 
                     # proxy for concentration

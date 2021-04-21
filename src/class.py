@@ -19,13 +19,14 @@ def load_parameters(filepath):
     return parameter
 
 
-seats_for_28 = load_parameters('../config/seating_28.json')
-seats_for_56 = load_parameters('../config/seating_56.json')
-f_seats_for_28 = load_parameters('../config/f_seating_28.json')
-f_seats_for_56 = load_parameters('../config/f_seating_56.json')
+# seats_for_28 = load_parameters('../config/seating_28.json')
+# seats_for_56 = load_parameters('../config/seating_56.json')
+# f_seats_for_28 = load_parameters('../config/f_seating_28.json')
+# f_seats_for_56 = load_parameters('../config/f_seating_56.json')
 
 
 
+dp = load_parameters('../config/default.json')
 aerosol_params = load_parameters('../config/aerosol.json')
 
 select_dict = load_parameters('../config/neighbor_logic.json')
@@ -34,7 +35,6 @@ def get_distance_class(student_pos, this_id, initial_id):
     x1, y1 = student_pos[initial_id]
     x2, y2 = student_pos[this_id]
     return x1, x2, y1, y2
-
 
 
 bus_flow_direction = np.array([[1, 1, 1, 2, 3, 4, 4],
@@ -207,6 +207,9 @@ def generate_class_conc(length, width, height, window_, ACH):
     x_axis = np.array(range(length * 10)) # orient as to class sim
     y_axis = np.array(range(width * 10)) # orient as to class sim
 
+
+
+
     # vent location
 
     # assume opposite wall is fully windows
@@ -216,6 +219,7 @@ def generate_class_conc(length, width, height, window_, ACH):
         # |  /       \   |
         # | /         \  |
         # |/__window___\ |
+    return
 
 def class_sim(win, n_students, mask, n_sims, trip_len, class_aerosol): # do 1 trip with given params
     '''

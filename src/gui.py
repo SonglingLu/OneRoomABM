@@ -71,7 +71,7 @@ class user_viz(tk.Frame):
         self.num_students.grid(row=5, column=1)
 
         # mask_percent
-        self.mask_wearing_label = tk.Label(self, text="Percent of students wearing masks")
+        self.mask_wearing_label = tk.Label(self, text="Percent of students wearing masks:")
         self.mask_wearing_label.grid(row=6, column=1)
         mask_options = ["100%", "90%", "80%"]
         self.mask_var = tk.StringVar(self)
@@ -80,7 +80,7 @@ class user_viz(tk.Frame):
         self.mask_wearing_choice.grid(row=7, column=1)
 
         # selfs
-        self.Frame_label = tk.Label(self, text="Windows Open (inches)")
+        self.Frame_label = tk.Label(self, text="Windows Open (inches):")
         self.Frame_label.grid(row=8, column=1)
         self.Frame_options = {"Bus": ["0 inches", "6 inches"], "Classroom": ["0 inches", "3 inches", "6 inches", "9 inches", "12 inches"]}
         self.Frame_var = tk.StringVar(self)
@@ -93,26 +93,29 @@ class user_viz(tk.Frame):
         self.t_window.grid(row=3, column=2)
 
         # button widget for setting seating plan type
+
+        self.Frame_label = tk.Label(self, text="Seating Chart type:")
+        self.Frame_label.grid(row=4, column=2)
+
         self.seating_options = ["Full seating", "Half full; Zigzag", "Half full; Window seats"]
         self.seat_var = tk.StringVar(self)
         self.seat_var.set(self.seating_options[0])
         self.seating_plan_set = tk.OptionMenu(self, self.seat_var, *self.seating_options)
-        self.seating_plan_set.grid(row=4, column=2)
+        self.seating_plan_set.grid(row=5, column=2)
+        self.conc_avg_heat = tk.Button(self, text="Concentration_average", command=self.conc_heat)
+        self.conc_avg_heat.grid(row=6, column=2)
 
         # button widget for vis of seating plan
         # TODO: overlay on top of bus
         self.seating_plan = tk.Button(self, text="Seating Chart", command=self.generate_bus_seating)
-        self.seating_plan.grid(row=5, column=2)
+        self.seating_plan.grid(row=7, column=2)
 
         # button widget for model run
         self.run_btn = tk.Button(self, text="Model Run", command=self.model_run)
-        self.run_btn.grid(row=6, column=2)
+        self.run_btn.grid(row=8, column=2)
 
         self.prev_run = tk.Button(self, text="Previous runs", command=self.viz_previous)
-        self.prev_run.grid(row=8, column=2)
-
-        self.conc_avg_heat = tk.Button(self, text="Concentration_average", command=self.conc_heat)
-        self.conc_avg_heat.grid(row=9, column=2)
+        self.prev_run.grid(row=9, column=2)
 
         # init other self variables for aerosol
         self.floor_area  = tk.StringVar()
@@ -271,14 +274,15 @@ class user_viz(tk.Frame):
 
     def heatmaps(self):
         # plot concentration average heatmaps for every step
-
-
-
         # save to folder
         return
 
+    
+
     # visualize previous model runs
-    def viz_previous():
+    def viz_previous(self):
+        # in model run, use a self. figure and plot all lines there
+
 
         return
 
