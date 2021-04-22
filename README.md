@@ -7,7 +7,7 @@ Installation instructions:
 clone repository (use git bash or Github Desktop)
 ensure package installations
 
-run _____.py to test that repository is downloaded fully and correctly
+run python -m verify to test that repository is downloaded fully and correctly
 
 
 Usage instructions:
@@ -23,7 +23,7 @@ Number of Students: [Depends on Model type]
 Percent wearing masks: [100%, 90%, 80%]
 
 Windows Open: inches
----
+
 Bus Route: dropdown of potential Bus Routes (and thus the bus size/type)
 
 Seating Chart Type:
@@ -48,3 +48,4 @@ TODO:
 
 Prettify: Heatmaps, plots / time
 Methods according to SEIR-P
+Verify.py: make sure download went correctly

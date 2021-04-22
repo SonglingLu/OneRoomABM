@@ -269,6 +269,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
         init_infectivity = inf_df.iloc[init_time_to_symp].gamma
 
         temp_average_array = temp_rates.copy()
+        # print(temp_average_array)
 
         run_chance_of_0 = 1
 
@@ -284,7 +285,7 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
                         mask_ = int(mask.split('%')[0]) / 100
                         masks = np.random.choice([.1, 1], p=[mask_, 1-mask_])
                     else:
-                        print(mask, type(mask))
+                        # print(mask, type(mask))
                         masks = np.random.choice([.1, 1], p=[mask, 1-mask])
 
                     x1, x2, y1, y2 = get_distance_bus(bus_flow_pos, student_id, initial_inf_id)
@@ -297,10 +298,11 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
 
                     # proxy for concentration
                     max_conc = max_val
-                    air_flow = concentration_[air_x][air_y] / max_val
+                    air_flow = concentration_[air_y][air_x] / max_val
 
                     transmission = (init_infectivity * chu_distance * masks) + (air_flow * bus_aerosol)
-                    if transmission > 0.02:
+                    if transmission > 0.3:
+                        transmission = .3
                         print(air_flow, 'af')# * bus_aerosol)
                     # calculate transmissions
                     if np.random.choice([True, False], p=[transmission, 1-transmission]):
