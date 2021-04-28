@@ -14,8 +14,16 @@ def load_parameters(filepath):
     '''
     Loads input and output directories
     '''
-    with open(filepath) as fp:
-        parameter = json.load(fp)
+    try:
+        with open(filepath) as fp:
+            parameter = json.load(fp)
+    except:
+        try:
+            with open('../' + filepath) as fp:
+                parameter = json.load(fp)
+        except:
+            with open('../../' + filepath) as fp:
+                parameter = json.load(fp)
 
     return parameter
 
@@ -24,33 +32,19 @@ def load_parameters(filepath):
 # fix concentration
 #
 
-try:
-    seats_for_28 = load_parameters('config/seating_28.json')
-    seats_for_56 = load_parameters('config/seating_56.json')
-    f_seats_for_28 = load_parameters('config/f_seating_28.json')
-    f_seats_for_56 = load_parameters('config/f_seating_56.json')
-    #
-    bus_flow_pos = load_parameters('config/f_seating_full.json')
-    bus_edge_pos = load_parameters('config/f_seating_half_edge.json')
-    bus_zig_pos = load_parameters('config/f_seating_half_zig.json')
-    #
-    aerosol_params = load_parameters('config/aerosol.json')
-    dp = load_parameters('config/default.json')
-    select_dict = load_parameters('config/neighbor_logic.json')
+seats_for_28 = load_parameters('config/seating_28.json')
+seats_for_56 = load_parameters('config/seating_56.json')
+f_seats_for_28 = load_parameters('config/f_seating_28.json')
+f_seats_for_56 = load_parameters('config/f_seating_56.json')
+#
+bus_flow_pos = load_parameters('config/f_seating_full.json')
+bus_edge_pos = load_parameters('config/f_seating_half_edge.json')
+bus_zig_pos = load_parameters('config/f_seating_half_zig.json')
+#
+aerosol_params = load_parameters('config/aerosol.json')
+dp = load_parameters('config/default.json')
+select_dict = load_parameters('config/neighbor_logic.json')
 
-except:
-    seats_for_28 = load_parameters('../../config/seating_28.json')
-    seats_for_56 = load_parameters('../../config/seating_56.json')
-    f_seats_for_28 = load_parameters('../../config/f_seating_28.json')
-    f_seats_for_56 = load_parameters('../../config/f_seating_56.json')
-    #
-    bus_flow_pos = load_parameters('../../config/f_seating_full.json')
-    bus_edge_pos = load_parameters('../../config/f_seating_half_edge.json')
-    bus_zig_pos = load_parameters('../../config/f_seating_half_zig.json')
-    #
-    aerosol_params = load_parameters('../../config/aerosol.json')
-    dp = load_parameters('../../config/default.json')
-    select_dict = load_parameters('../../config/neighbor_logic.json')
 
 def get_distance_bus(student_pos, this_id, initial_id):
     x1, y1 = student_pos[initial_id]
@@ -345,12 +339,15 @@ def bus_sim(win, n_students, mask, n_sims, trip_len, flow_seating): # do 1 trip 
         run_average_array.append(1 - run_chance_of_0) # add chance of nonzero to array
         # takes average over model run
         for id in flow_seating.keys():
-            transmission_bus_rates[id] = np.mean(temp_average_array[id])
+            if len(temp_average_array[id]) > 0:
+                transmission_bus_rates[id] = np.mean(temp_average_array[id])
     # takes average over all runs
     for id in flow_seating.keys():
         averaged_all_runs[id] = np.mean(transmission_bus_rates[id])
 
     # average risk of >= 1 infection across all model runs
+    if len(run_average_array) == 0:
+        print('Sim failed')
     run_avg_nonzero = np.mean(run_average_array)
     print('initially infected counts', init_inf_dict)
     # OUTPUT AVERAGE LIKELIHOOD OF >= 1 INFECTION

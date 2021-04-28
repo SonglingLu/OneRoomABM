@@ -114,12 +114,20 @@ def load_parameters(filepath):
     '''
     Loads input and output directories
     '''
-    with open(filepath) as fp:
-        parameter = json.load(fp)
+    try:
+        with open(filepath) as fp:
+            parameter = json.load(fp)
+    except:
+        try:
+            with open('../' + filepath) as fp:
+                parameter = json.load(fp)
+        except:
+            with open('../../' + filepath) as fp:
+                parameter = json.load(fp)
 
     return parameter
-
-dp = load_parameters('../../config/default.json')
+print(os.getcwd(), 'cwd')
+dp = load_parameters('config/default.json')
 
 
 
