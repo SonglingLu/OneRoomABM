@@ -60,7 +60,7 @@ def main(targets):
         temp = load_parameters(GUI_PARAMS)
 
         # show_gui(temp)
-        runpy.run_path('../OneRoomABM/src/gui.py') # run main?
+        # runpy.run_path('../OneRoomABM/src/gui.py') # wtf ok
         # this outputs the parameters
 
 

@@ -7,8 +7,9 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib as mpl
 
+sys.path.insert(0, '../src')
 from bus import bus_sim
 from infection import return_aerosol_transmission_rate
 
@@ -16,7 +17,9 @@ def load_parameters_gui():
     '''
     Loads input and output directories
     '''
-    with open('config/gui.json') as fp:
+    folder_fix = '../'
+
+    with open(folder_fix + '../config/gui.json') as fp:
         parameter = json.load(fp)
     return parameter
 
@@ -29,11 +32,14 @@ class user_viz(tk.Frame):
         super(user_viz, self).__init__()
         self.pack(fill='both', expand=True)
 
+        self.folder_fix = '../'
+
         # separate input params
         self.input_params = load_parameters_gui()
         self.mask_wearing_percent = self.input_params["mask_wearing_percent"]
         self.num_students = self.input_params["number_students"]
         self.windows = self.input_params["windows"]
+
         # self.show_gui()
         self.label = tk.Label(self, text="Classroom / Bus Risk")
         self.label.grid(row=1, column=1)
@@ -62,11 +68,11 @@ class user_viz(tk.Frame):
         self.students_label = tk.Label(self, text="Number of Students")
         self.students_label.grid(row=4, column=1)
         self.student_temp = tk.StringVar(self)
-        self.student_option_dict = {"Bus": [30, 36, 44, 50, 54, 56], "Classroom": [10, 25, 40]}
+        self.student_option_dict = {"Bus": [15, 30, 18, 36, 22, 44, 25, 50, 27, 54, 28, 56], "Classroom": [10, 25, 40]}
 
         self.students_var_list = self.student_option_dict[self.model_var.get()]
         self.students_var =  tk.StringVar(self)
-        self.students_var.set(self.students_var_list[0])
+        self.students_var.set(self.students_var_list[-1])
         self.num_students = tk.OptionMenu(self, self.students_var, *self.students_var_list)
         self.num_students.grid(row=5, column=1)
 
@@ -83,9 +89,10 @@ class user_viz(tk.Frame):
         self.Frame_label = tk.Label(self, text="Windows Open (inches):")
         self.Frame_label.grid(row=8, column=1)
         self.Frame_options = {"Bus": ["0 inches", "6 inches"], "Classroom": ["0 inches", "3 inches", "6 inches", "9 inches", "12 inches"]}
+        self.Frame_var_list = self.Frame_options[self.model_var.get()]
         self.Frame_var = tk.StringVar(self)
-        self.Frame_var.set(self.Frame_options[self.model_var.get()][0])
-        self.Frame_choice = tk.OptionMenu(self, self.Frame_var, *self.Frame_options)
+        self.Frame_var.set(self.Frame_var_list[0])
+        self.Frame_choice = tk.OptionMenu(self, self.Frame_var, *self.Frame_var_list)
         self.Frame_choice.grid(row=9, column=1)
 
         # button widget for transmission params
@@ -93,11 +100,11 @@ class user_viz(tk.Frame):
         self.t_window.grid(row=3, column=2)
 
         # button widget for setting seating plan type
-
         self.Frame_label = tk.Label(self, text="Seating Chart type:")
         self.Frame_label.grid(row=4, column=2)
 
-        self.seating_options = ["Full seating", "Half full; Zigzag", "Half full; Window seats"]
+        # seating setup
+        self.seating_options = ["Full seating", "Zigzag seats", "Window seats only"]
         self.seat_var = tk.StringVar(self)
         self.seat_var.set(self.seating_options[0])
         self.seating_plan_set = tk.OptionMenu(self, self.seat_var, *self.seating_options)
@@ -107,7 +114,7 @@ class user_viz(tk.Frame):
 
         # button widget for vis of seating plan
         # TODO: overlay on top of bus
-        self.seating_plan = tk.Button(self, text="Seating Chart", command=self.generate_bus_seating)
+        self.seating_plan = tk.Button(self, text="Seating Chart", command=self.plot_bus_seating)
         self.seating_plan.grid(row=7, column=2)
 
         # button widget for model run
@@ -129,6 +136,7 @@ class user_viz(tk.Frame):
         self.exhaled_air_inf  = tk.StringVar()
         self.max_viral_deact_rate  = tk.StringVar()
         self.mask_passage_prob  = tk.StringVar()
+        self.bus_trips = []
 
     def update_var(self, *args):
         '''
@@ -183,7 +191,7 @@ class user_viz(tk.Frame):
         '''
         Loads input and output directories
         '''
-        with open(filepath) as fp:
+        with open(self.folder_fix + self.folder_fix + filepath) as fp:
             parameter = json.load(fp)
 
         return parameter
@@ -195,10 +203,10 @@ class user_viz(tk.Frame):
         '''
         # get seating type:
         temp = self.seat_var.get()
-        if temp == "full seating":
+        if temp == "Full seating":
             seat_dict = self.load_parameters('config/f_seating_full.json')
         else:
-            if temp == "half full; window seats":
+            if temp == "Window seats only":
                 seat_dict = self.load_parameters('config/f_seating_half_edge.json')
             else:
                 seat_dict = self.load_parameters('config/f_seating_half_zig.json')
@@ -207,15 +215,51 @@ class user_viz(tk.Frame):
         temp_dict = {}
         for i in range(int(num_kids)):
             temp_dict[str(i)] = seat_dict[str(i)]
-
-        print(temp_dict)
+        # print(temp)
+        # print(temp_dict)
         return temp_dict
+
+    def plot_bus_seating(self):
+        '''
+        plot avg based on temp dict
+
+        TODO: background of bus
+        '''
+        t_dict = self.generate_bus_seating()
+        x_arr = []
+        y_arr = []
+        print('bus_seat_figure')
+        plt.figure(figsize=(2,2))
+        # plt.gcf().set_size_inches(2,2)
+        for i in t_dict.items():
+            x_arr.append(i[1][1])
+            y_arr.append(i[1][0])
+        plt.scatter(x=x_arr, y=y_arr)
+        plt.show()
+        return
 
     def conc_heat(self):
         '''
         average over model runs: out_matrix averages
 
+        TODO: overlay current seating chart
+
         '''
+        type_ = self.model_var.get()
+        # print(type(type_), type_)
+        if type_ == "Bus":
+            # run bus model
+            window = self.Frame_var.get()
+            num_students = int(self.students_var.get())
+            mask = self.mask_var.get()
+            num_sims = 100 # get from advanced
+            trip_len = 30 # get from bus trip stops
+            bus_seating = self.generate_bus_seating()
+            bus_trip, conc_array, out_mat, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_seating) # replace default with selected
+            print('conc_heat_figure')
+            # plt.figure(figsize=(5,4))
+            plt.matshow(out_mat, cmap="OrRd", norm=mpl.colors.LogNorm())
+            plt.show()
 
         return
     # function to run model with user input
@@ -235,35 +279,50 @@ class user_viz(tk.Frame):
             heatmap of run steps: saved to file
         '''
         # get type:
-        type = self.model_var.get()
-        if type == "Bus":
+        type_ = self.model_var.get()
+        # print(type(type_), type_)
+        if type_ == "Bus":
             # run bus model
             window = self.Frame_var.get()
             num_students = int(self.students_var.get())
-            print('n', num_students)
             mask = self.mask_var.get()
             num_sims = 100 # get from advanced
             trip_len = 30 # get from bus trip stops
             bus_seating = self.generate_bus_seating()
-            bus_trip, conc, out_mat, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_seating) # replace default with selected
+            bus_trip, conc_array, out_mat, chance_nonzero = bus_sim(window, num_students, mask, num_sims, trip_len, bus_seating) # replace default with selected
+            self.chance_nonzero = chance_nonzero
+            self.conc_array = conc_array
+            self.bus_trips.append(bus_trip)
+            print('bus_fig')
+            plt.figure(figsize=(5,4))#, dpi=300)
+            # plt.gcf().set_size_inches(5,4)
+            # ax = plt.gca()
+            pd.Series(bus_trip).plot.kde()
+            plt.title('Density estimation of exposure')
+            plt.xlim(0, .004)
 
 
-            # what to do with conc
+            temp_x = np.array([i * 5 for i in range(8)])
+            str_x = np.array([str(int / 100)+'%' for int in temp_x])
+            plt.xticks(np.arange(0, .004, .0005), str_x)
+            # plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
 
-            # save to file?
+            plt.yticks(np.arange(0, 3500, 700), np.arange(0, 3500, 700) / 3500)
+
+
+            # rescale y axis to be % based
+            plt.xlabel('Likelihood of exposure to infectious dose of particles               ')
+            plt.ylabel('Density estimation of probability of occurrence')
+            # plt.savefig('window_curve.png', dpi=300)
+            print('model_run_bus')
+            plt.show()
 
             # figure plot logic
             # title: grab string using get() for variables
             # sns.set(rc='figure.figsize': (11.8, 8.27))
-            fig, ax = plt.subplots(figsize=(3, 3))
-            s = pd.Series(bus_trip)
-            ax1 = s.plot.kde()
-            # rescale y axis to be proportional
-
-            plt.xticks(np.arange(0, .003, .0005)) # in scientific
-
-
-            plt.show()
+            # fig, ax = plt.subplots(figsize=(3, 3))
+            # s = pd.Series(bus_trip)
+            # ax1 = s.plot.kde()
 
         elif type == "Classroom":
             pass # run class model
@@ -277,7 +336,7 @@ class user_viz(tk.Frame):
         # save to folder
         return
 
-    
+
 
     # visualize previous model runs
     def viz_previous(self):
@@ -286,16 +345,16 @@ class user_viz(tk.Frame):
 
         return
 
-run = True
+window = tk.Tk()
+# window.pack(side="top", fill="both", expand=True)
+window.geometry("400x400")
+window.wm_title("Bus and Classroom Risk")
+# photo icon
+p1 = tk.PhotoImage(file="../../config/covid_icon.png")
+window.iconphoto(False, p1)
 
-if run:
-    window = tk.Tk()
-    window.geometry("350x350")
-    window.title("Bus and Classroom Risk")
-    # window.withdraw()
-    # set style
-    style = ttk.Style(window)
-    style.theme_use('clam')
-    app = user_viz(window)
-    window.mainloop()
-    sys.exit("End gui.py")
+# set style
+style = ttk.Style(window)
+style.theme_use('clam')
+app = user_viz(window)
+window.mainloop()
