@@ -177,18 +177,20 @@ class user_viz(tk.Frame):
 
         self.mask_wearing_label = tk.Label(self.newWindow, text="Mask Efficacy")
         self.mask_wearing_label.pack()
-        self.mask_wearing_chance = tk.Entry(self.newWindow)
+        temp_mask_eff = tk.StringVar(window, value=".1")
+        self.mask_wearing_chance = tk.Entry(self.newWindow, textvariable=temp_mask_eff)
         self.mask_wearing_chance.pack()
 
         self.num_sims_label = tk.Label(self.newWindow, text="Number of Simulations")
         self.num_sims_label.pack()
-        temp = tk.StringVar(window, value="100")
-        self.num_sims_chance = tk.Entry(self.newWindow, textvariable=temp)
+        temp_sims = tk.StringVar(window, value="100")
+        self.num_sims_chance = tk.Entry(self.newWindow, textvariable=temp_sims)
         self.num_sims_chance.pack()
 
         self.trip_length_label = tk.Label(self.newWindow, text="Trip Length")
         self.trip_length_label.pack()
-        self.trip_length_chance = tk.Entry(self.newWindow)
+        temp_len = tk.StringVar(window, value="30")
+        self.trip_length_chance = tk.Entry(self.newWindow, textvariable=temp_len)
         self.trip_length_chance.pack()
 
     def load_parameters(self, filepath):
