@@ -194,7 +194,7 @@ def create_plot_viz(infect_times, infect_distrib):
     # convert infection timestamps to step function plot
     times = infect_times.values()
     #
-    # print('times', times)
+    #print('times', times)
     step_x_array = times
     step_y_array = [i for i in range(len(times))]
     plt.step(step_x_array, step_y_array) # label timestep above each infection
@@ -369,7 +369,7 @@ def one_room(input_dir, output_dir, viz_checkd, num_people=25, mask_type='cloth'
     if viz_checkd:
 
         create_color_viz(infection_timesteps, 25)
-        print(infection_timesteps, 'time')
+        #print(infection_timesteps, 'time')
 
         create_plot_viz(infection_timesteps, trans_array)
     # '''
@@ -381,17 +381,13 @@ def scatter_collect(input_dir, output_dir, viz_checkd, num_people=25, mask_type=
  num_days=5, num_class=3, vent_test=False, n_runs=10): # also add one_room inputs, use this as run.py command
     '''
     run one_room n=1000 times and take avg of # times each id is stored
-
     divide by # runs = % chance of each seat being infected in each seat:
-
     Y = # times infectious/infective/infected by the model
     X = avg distance from other points
-
     i.e. Y =
     a dictionary with {ID: % of time infected}
     X =
     a dictionary with {ID: Avg distance from other individuals}
-
     ### TODO: think of better X variable
     '''
     id_counts = {i: 0 for i in range(num_people)}

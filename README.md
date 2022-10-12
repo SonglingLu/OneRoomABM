@@ -11,8 +11,4 @@ Visualization includes:
 -Distribution plot of transmission rates post-processing (for each 5 minute step and unique infected individual)
 -Time series plot of when infection occurs
 
-TODO:
-Docker Image (due thursday)
-Airavata (due wednesday)
-
-Well-Mixed room (due thursday)
+Result Report: https://github.com/SonglingLu/OneRoomABMSite

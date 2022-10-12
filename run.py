@@ -41,13 +41,6 @@ def main(targets):
         # one_room(temp['input_dir'], temp['output_dir'], False) #implement additional input variable in one_room()
         return
 
-    if 'bus_flow' in targets:
-        # output quiver plot and ??contour plot?? for bus of input type
-        temp = load_parameters(BUS_PARAMS)
-        # one_room(temp['input_dir'], temp['output_dir'], False, )
-
-        return
-
     if 'scatter' in targets:
         temp = load_parameters(SCALE_MODEL_PARAMS)
         scatter_collect(temp['input_dir'], temp['output_dir'], False)
